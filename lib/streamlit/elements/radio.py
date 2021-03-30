@@ -129,7 +129,8 @@ class RadioMixin:
             context=context,
             deserializer=deserialize_radio_button,
         )
-        return self.dg._enqueue("radio", radio_proto, return_value)
+        self.dg._enqueue("radio", radio_proto)
+        return return_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

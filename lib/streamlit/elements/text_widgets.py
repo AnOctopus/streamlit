@@ -111,7 +111,8 @@ class TextWidgetsMixin:
             context=context,
             deserializer=deserialize_text_input,
         )
-        return self.dg._enqueue("text_input", text_input_proto, value)
+        self.dg._enqueue("text_input", text_input_proto)
+        return value
 
     def text_area(
         self,
@@ -199,7 +200,8 @@ class TextWidgetsMixin:
             context=context,
             deserializer=deserialize_text_area,
         )
-        return self.dg._enqueue("text_area", text_area_proto, value)
+        self.dg._enqueue("text_area", text_area_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

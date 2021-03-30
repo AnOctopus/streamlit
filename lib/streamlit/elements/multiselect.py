@@ -127,18 +127,16 @@ class MultiSelectMixin:
         indices = _check_and_convert_to_indices(options, default)
         multiselect_proto = MultiSelectProto()
         multiselect_proto.label = label
-        default_value = [] if indices is None else indices
-        multiselect_proto.default[:] = default_value
+        # default_value = [] if indices is None else indices
+        multiselect_proto.default[:] = values
         multiselect_proto.options[:] = [str(format_func(option)) for option in options]
         if force_set_value:
             multiselect_proto.value[:] = values
             multiselect_proto.valueSet = True
-        # TODO(amanda): protobuf, figure out if values obtained from state could be invalid
-        # TODO(amanda): add comments to keep track of values vs indices
         # TODO(amanda): file ticket for supporting sets in addition to lists, and use sets internally for semantic clarity?
 
         def deserialize_multiselect(ui_value):
-            current_value = ui_value.data if ui_value is not None else default_value
+            current_value = ui_value.data if ui_value is not None else values
             return [options[i] for i in current_value]
 
         register_widget(
@@ -149,7 +147,8 @@ class MultiSelectMixin:
             context=context,
             deserializer=deserialize_multiselect,
         )
-        return self.dg._enqueue("multiselect", multiselect_proto, values)
+        self.dg._enqueue("multiselect", multiselect_proto, values)
+        return values
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

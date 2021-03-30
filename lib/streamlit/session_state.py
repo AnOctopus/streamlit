@@ -44,33 +44,30 @@ class SessionState:
         # _new_state must be set first to avoid initialization issues
         self._new_state: Namespace = {}
         self._old_state: Namespace = {}
-        self._new_state.clear()
-        self._old_state.clear()
+        # self._new_state.clear()
+        # self._old_state.clear()
 
     def __getattr__(self, key: str) -> Optional[Any]:
-        new_state_value = self._new_state.get(key, None)
-        if new_state_value is not None:
-            return new_state_value
+        return self[key]
 
-        widget_state = beta_widget_value(key)
-        if widget_state is not None:
-            return widget_state
+    def get_new_value(self, key: str) -> Optional[Any]:
+        return self._new_state.get(key, None)
 
-        old_state_value = self._old_state.get(key, None)
-        return old_state_value
+    def get_old_value(self, key: str) -> Optional[Any]:
+        return self._old_state.get(key, None)
 
     def __setattr__(self, key: str, value: Any) -> None:
         # Initial setting of attributes must use the base method to avoid recursion
         if key in ["_new_state", "_old_state"]:
             super().__setattr__(key, value)
-
-        self._new_state[key] = value
+        else:
+            self._new_state[key] = value
 
     def __contains__(self, key: str) -> bool:
-        return self.has_var_set(key)
+        return self[key] is not None
 
     def has_var_set(self, key: str) -> bool:
-        return key in self._new_state or key in self._old_state
+        return self[key] is not None
 
     def init_value(self, key: str, default_value: Any) -> None:
         if not self.has_var_set(key):
@@ -88,17 +85,23 @@ class SessionState:
         old_state_value = self._old_state.get(key, None)
         return old_state_value
 
-    def set_value(self, key: str, value: Any) -> None:
-        self._new_state[key] = value
-
     def __str__(self):
         return str(f"_new_state={self._new_state}, _old_state={self._old_state}")
 
     def __getitem__(self, key: str) -> Optional[Any]:
-        return self.get_value(key)
+        new_state_value = self._new_state.get(key, None)
+        if new_state_value is not None:
+            return new_state_value
+
+        widget_state = beta_widget_value(key)
+        if widget_state is not None:
+            return widget_state
+
+        old_state_value = self._old_state.get(key, None)
+        return old_state_value
 
     def __setitem__(self, key: str, value: Any) -> None:
-        self.set_value(key, value)
+        self._new_state[key] = value
 
     def make_state_old(self) -> None:
         self._old_state.update(self._new_state)

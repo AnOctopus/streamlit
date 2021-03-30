@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Allows us to create and absorb changes (aka Deltas) to elements."""
-from typing import Optional, Iterable, List
+from typing import Optional, Iterable, List, Generic, TypeVar, Union, Any
 
 import streamlit as st
 from streamlit import caching
@@ -313,7 +313,7 @@ class DeltaGenerator(
         last_index=None,
         element_width=None,
         element_height=None,
-    ):
+    ) -> "DeltaGenerator":
         """Create NewElement delta, fill it, and enqueue it.
 
         Parameters
@@ -391,7 +391,8 @@ class DeltaGenerator(
             # no-op from the point of view of the app.
             output_dg = dg
 
-        return _value_or_dg(return_value, output_dg)
+        # return _value_or_dg(return_value, output_dg)
+        return output_dg
 
     # Internal block element, used for e.g. containers, expanders, columns
     def _block(self, block_proto=Block_pb2.Block()) -> "DeltaGenerator":
@@ -586,7 +587,7 @@ def _get_pandas_index_attr(data, attr):
     return getattr(data.index, attr, None)
 
 
-def _value_or_dg(value, dg):
+def _value_or_dg(value: Any, dg: DeltaGenerator) -> Union[Any, DeltaGenerator]:
     """Return either value, or None, or dg.
 
     This is needed because Widgets have meaningful return values. This is

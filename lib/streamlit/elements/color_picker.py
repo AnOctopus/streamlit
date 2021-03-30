@@ -93,7 +93,8 @@ class ColorPickerMixin:
             context=context,
             deserializer=deserialize_color_picker,
         )
-        return self.dg._enqueue("color_picker", color_picker_proto, current_value)
+        self.dg._enqueue("color_picker", color_picker_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

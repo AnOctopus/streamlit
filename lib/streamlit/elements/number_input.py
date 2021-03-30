@@ -239,7 +239,8 @@ class NumberInputMixin:
             context=context,
             deserializer=deserialize_number_input,
         )
-        return self.dg._enqueue("number_input", number_input_proto, value)
+        self.dg._enqueue("number_input", number_input_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

@@ -422,7 +422,8 @@ class SliderMixin:
             context=context,
             deserializer=deserialize_slider,
         )
-        return self.dg._enqueue("slider", slider_proto, value)
+        self.dg._enqueue("slider", slider_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

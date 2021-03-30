@@ -97,7 +97,8 @@ class TimeWidgetsMixin:
             context=context,
             deserializer=deserialize_time_input,
         )
-        return self.dg._enqueue("time_input", time_input_proto, value)
+        self.dg._enqueue("time_input", time_input_proto)
+        return value
 
     def date_input(
         self,
@@ -215,7 +216,8 @@ class TimeWidgetsMixin:
             context=context,
             deserializer=deserialize_date_input,
         )
-        return self.dg._enqueue("date_input", date_input_proto, value)
+        self.dg._enqueue("date_input", date_input_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

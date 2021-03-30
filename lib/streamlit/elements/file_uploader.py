@@ -126,7 +126,8 @@ class FileUploaderMixin:
             files = [UploadedFile(rec) for rec in file_recs]
             return_value = files if accept_multiple_files else files[0]
 
-        return self.dg._enqueue("file_uploader", file_uploader_proto, return_value)
+        self.dg._enqueue("file_uploader", file_uploader_proto)
+        return return_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

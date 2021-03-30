@@ -20,7 +20,7 @@ from .utils import register_widget
 
 
 class ButtonMixin:
-    def button(self, label, key=None, on_click=None, context=None):
+    def button(self, label, key=None, on_click=None, context=None) -> bool:
         """Display a button widget.
 
         Parameters
@@ -61,7 +61,7 @@ class ButtonMixin:
         def deserialize_button(ui_value):
             return ui_value if ui_value is not None else False
 
-        current_value = register_widget(
+        current_value: bool = register_widget(
             "button",
             button_proto,
             user_key=key,
@@ -69,7 +69,8 @@ class ButtonMixin:
             context=context,
             deserializer=deserialize_button,
         )
-        return self.dg._enqueue("button", button_proto, current_value)
+        self.dg._enqueue("button", button_proto)
+        return current_value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

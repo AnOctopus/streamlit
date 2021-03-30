@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
@@ -21,7 +21,14 @@ from streamlit.session_state import get_session_state
 
 
 class CheckboxMixin:
-    def checkbox(self, label, value=None, key=None, on_change=None, context=None):
+    def checkbox(
+        self,
+        label,
+        value: Optional[bool] = None,
+        key=None,
+        on_change=None,
+        context=None,
+    ) -> bool:
         """Display a checkbox widget.
 
         Parameters
@@ -86,7 +93,8 @@ class CheckboxMixin:
             context=context,
             deserializer=deserialize_checkbox,
         )
-        return self.dg._enqueue("checkbox", checkbox_proto, value)
+        self.dg._enqueue("checkbox", checkbox_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

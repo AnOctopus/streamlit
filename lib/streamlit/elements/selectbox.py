@@ -132,7 +132,8 @@ class SelectboxMixin:
             context=context,
             deserializer=deserialize_select_box,
         )
-        return self.dg._enqueue("selectbox", selectbox_proto, value)
+        self.dg._enqueue("selectbox", selectbox_proto)
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
