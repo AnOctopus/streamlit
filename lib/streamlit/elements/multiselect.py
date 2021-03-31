@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast, Any, Optional, Set
+from typing import cast, Any, Optional, Set, Iterable, List
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -26,8 +26,8 @@ class MultiSelectMixin:
     def multiselect(
         self,
         label,
-        options,
-        default=None,
+        options: List[str],
+        default: Optional[List[str]] = None,
         format_func=str,
         key=None,
         on_change=None,
@@ -81,12 +81,12 @@ class MultiSelectMixin:
            `GitHub issue #1059 <https://github.com/streamlit/streamlit/issues/1059>`_ for updates on the issue.
 
         """
-        options = ensure_iterable(options)
+        options: List[str] = ensure_iterable(options)
 
         if key is None:
             key = label
 
-        values: Optional[Set[Any]] = None if default is None else set(default)
+        values: Optional[Set[str]] = None if default is None else set(default)
         state = get_session_state()
         force_set_value = values is not None or state.is_new_value(key)
 
@@ -99,7 +99,9 @@ class MultiSelectMixin:
             values = None
 
         # Perform validation checks and return indices base on the default values.
-        def _check_and_convert_to_indices(options, default_values):
+        def _check_and_convert_to_indices(
+            options, default_values
+        ) -> Optional[List[int]]:
             if default_values is None and None not in options:
                 return None
 
@@ -124,18 +126,19 @@ class MultiSelectMixin:
 
             return [options.index(value) for value in default_values]
 
-        indices = _check_and_convert_to_indices(options, default)
+        indices = _check_and_convert_to_indices(options, values)
         multiselect_proto = MultiSelectProto()
         multiselect_proto.label = label
-        # default_value = [] if indices is None else indices
-        multiselect_proto.default[:] = values
+        default_value_indices = [] if indices is None else indices
+        multiselect_proto.default[:] = default_value_indices
         multiselect_proto.options[:] = [str(format_func(option)) for option in options]
         if force_set_value:
-            multiselect_proto.value[:] = values
+            # multiselect values are indices
+            multiselect_proto.value[:] = default_value_indices
             multiselect_proto.valueSet = True
         # TODO(amanda): file ticket for supporting sets in addition to lists, and use sets internally for semantic clarity?
 
-        def deserialize_multiselect(ui_value):
+        def deserialize_multiselect(ui_value: Any) -> List[str]:
             current_value = ui_value.data if ui_value is not None else values
             return [options[i] for i in current_value]
 

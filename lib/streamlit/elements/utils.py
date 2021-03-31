@@ -153,7 +153,8 @@ def register_widget(
     else:
         ctx.widgets.add_deserializer(element_proto.id, deserializer)
 
-    ctx.widgets.add_signal(element_proto.id, key, context)
+    if key is not None:
+        ctx.widgets.add_signal(element_proto.id, key, context)
 
     # Return the widget's current value.
     return deserializer(ctx.widgets.get_widget_value(widget_id))

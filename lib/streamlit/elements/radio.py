@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -27,13 +27,13 @@ class RadioMixin:
         self,
         label,
         options,
-        index=None,
+        index: Optional[int] = None,
         value=None,
         format_func=str,
         key=None,
         on_change=None,
         context=None,
-    ):
+    ) -> str:
         """Display a radio button widget.
 
         Parameters
@@ -88,21 +88,22 @@ class RadioMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
+            # what if this value is not in options?
             value = state[key]
         if value is None:
             value = options[0]
 
-        # if not isinstance(index, int):
-        #     raise StreamlitAPIException(
-        #         "Radio Value has invalid type: %s" % type(index).__name__
-        #     )
-
-        # if len(options) > 0 and not 0 <= index < len(options):
-        #     raise StreamlitAPIException(
-        #         "Radio index must be between 0 and length of options"
-        #     )
-
         index = options.index(value)
+        if not isinstance(index, int):
+            raise StreamlitAPIException(
+                "Radio Value has invalid type: %s" % type(index).__name__
+            )
+
+        if len(options) > 0 and not 0 <= index < len(options):
+            raise StreamlitAPIException(
+                "Radio index must be between 0 and length of options"
+            )
+
         radio_proto = RadioProto()
         radio_proto.label = label
         radio_proto.default = index
@@ -121,7 +122,7 @@ class RadioMixin:
                 else NoValue
             )
 
-        return_value = register_widget(
+        register_widget(
             "radio",
             radio_proto,
             user_key=key,
@@ -130,7 +131,7 @@ class RadioMixin:
             deserializer=deserialize_radio_button,
         )
         self.dg._enqueue("radio", radio_proto)
-        return return_value
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

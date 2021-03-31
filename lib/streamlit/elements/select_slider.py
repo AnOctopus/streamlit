@@ -137,7 +137,7 @@ class SelectSliderMixin:
         slider_proto.options[:] = [str(format_func(option)) for option in options]
         if force_set_value:
             # TODO: make sure the right value is passed
-            slider_proto.value = slider_value
+            slider_proto.value[:] = slider_value
             slider_proto.valueSet = True
 
         def deserialize_select_slider(ui_value):

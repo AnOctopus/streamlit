@@ -49,6 +49,9 @@ class ButtonMixin:
         ...     st.write('Goodbye')
 
         """
+        if key is None:
+            key = label
+
         button_proto = ButtonProto()
 
         button_proto.label = label

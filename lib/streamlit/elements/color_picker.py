@@ -13,16 +13,19 @@
 # limitations under the License.
 
 import re
-from typing import cast
+from typing import cast, Optional
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.ColorPicker_pb2 import ColorPicker as ColorPickerProto
 from .utils import register_widget
+from streamlit.session_state import get_session_state
 
 
 class ColorPickerMixin:
-    def color_picker(self, label, value=None, key=None, on_change=None, context=None):
+    def color_picker(
+        self, label, value: Optional[str] = None, key=None, on_change=None, context=None
+    ):
         """Display a color picker widget.
 
         Parameters
@@ -52,6 +55,14 @@ class ColorPickerMixin:
         >>> st.write('The current color is', color)
 
         """
+        if key is None:
+            key = label
+
+        state = get_session_state()
+        force_set_value = value is not None or state.is_new_value(key)
+
+        if value is None:
+            value = state[key]
         # set value default
         if value is None:
             value = "#000000"
@@ -82,10 +93,10 @@ class ColorPickerMixin:
         color_picker_proto.label = label
         color_picker_proto.default = str(value)
 
-        def deserialize_color_picker(ui_value):
+        def deserialize_color_picker(ui_value) -> str:
             return str(ui_value if ui_value is not None else value)
 
-        current_value = register_widget(
+        register_widget(
             "color_picker",
             color_picker_proto,
             user_key=key,
@@ -94,7 +105,7 @@ class ColorPickerMixin:
             deserializer=deserialize_color_picker,
         )
         self.dg._enqueue("color_picker", color_picker_proto)
-        return current_value
+        return value
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
