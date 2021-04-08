@@ -13,7 +13,19 @@
 # limitations under the License.
 
 from datetime import date, time, datetime, timedelta, timezone
-from typing import cast
+from typing import (
+    Any,
+    Callable,
+    List,
+    Sequence,
+    cast,
+    Optional,
+    TypeVar,
+    Union,
+    Generic,
+)
+
+from dataclasses import dataclass
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -25,19 +37,24 @@ from streamlit.session_state import get_session_state
 from streamlit.widgets import beta_widget_value
 
 
+T = TypeVar("T", int, float, date, time, datetime)
+
+Value = Union[T, Sequence[T]]
+
+
 class SliderMixin:
     def slider(
         self,
-        label,
+        label: str,
         min_value=None,
         max_value=None,
-        value=None,
+        value: Optional[Value] = None,
         step=None,
         format=None,
         on_change=None,
         context=None,
-        key=None,
-    ):
+        key: Optional[str] = None,
+    ) -> Value:
         """Display a slider widget.
 
         This supports int, float, date, time, and datetime types.
@@ -429,3 +446,98 @@ class SliderMixin:
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
         """Get our DeltaGenerator."""
         return cast("streamlit.delta_generator.DeltaGenerator", self)
+
+
+@dataclass(frozen=True)
+class SingleValue(Generic[T]):
+    value: T
+
+
+@dataclass(frozen=True)
+class RangeValue(Generic[T]):
+    lower: T
+    upper: T
+
+
+V = Union[SingleValue[T], RangeValue[T]]
+
+
+def to_list(v: V[T]) -> List[T]:
+    """Convert into a list, for protobuf"""
+    if isinstance(v, SingleValue):
+        return [v.value]
+    else:
+        return [v.lower, v.upper]
+
+
+@dataclass
+class IntSlider:
+    label: str
+    key: str
+    min_value: int
+    max_value: int
+    value: V[int]
+    force_set_value: bool
+    step: int
+    format: str
+    on_change: Optional[Callable[..., Any]]
+    data_type: Any = SliderProto.INT
+
+    def __init__(
+        self,
+        label: str,
+        min_value: int = 0,
+        max_value: int = 100,
+        value: Optional[V[int]] = None,
+        step: int = 1,
+        format: str = "%d",
+        on_change=None,
+        key: Optional[str] = None,
+    ):
+        self.label = label
+        if key is not None:
+            self.key = key
+        else:
+            self.key = label
+
+        try:
+            self.min_value = min(min_value, max_value)
+            self.max_value = max(min_value, max_value)
+            JSNumber.validate_int_bounds(min_value, "`min_value`")
+            JSNumber.validate_int_bounds(max_value, "`max_value`")
+        except JSNumberBoundsException as e:
+            raise StreamlitAPIException(str(e))
+
+        self.step = step
+        self.format = format
+
+        state = get_session_state()
+        # true if value was passed in, or will be gotten from the new part of state
+        self.force_set_value = value is not None or state.is_new_value(self.key)
+
+        # Value not passed in, try to get it from state
+        if value is None:
+            value = state[self.key]
+        # Value not in state, use default
+        if value is None:
+            value = SingleValue(self.min_value)
+
+        self.value = value
+        if on_change is not None:
+            self.on_change = on_change
+
+    def to_protobuf(self) -> SliderProto:
+        slider_proto = SliderProto()
+        slider_proto.label = self.label
+        slider_proto.format = self.format
+        slider_proto.default[:] = to_list(self.value)
+        slider_proto.min = self.min_value
+        slider_proto.max = self.max_value
+        slider_proto.step = self.step
+        slider_proto.data_type = self.data_type
+        slider_proto.options[:] = []
+        if self.force_set_value:
+            slider_proto.value[:] = to_list(self.value)
+            slider_proto.valueSet = True
+
+        return slider_proto
