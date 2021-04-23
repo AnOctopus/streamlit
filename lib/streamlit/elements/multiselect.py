@@ -90,13 +90,15 @@ class MultiSelectMixin:
         state = get_session_state()
         force_set_value = values is not None or state.is_new_value(key)
 
-        # Value not passed in, try to get it from state
         if values is None:
-            values = state[key]
+            # Value not passed in, try to get it from state
+            values = state.get(key, None)
         # Value not in state, use default
         if values is None:
             # no-op, included to keep the structure the same as other widgets
             values = None
+
+        state[key] = values
 
         # Perform validation checks and return indices base on the default values.
         def _check_and_convert_to_indices(

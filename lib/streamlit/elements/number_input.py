@@ -86,12 +86,15 @@ class NumberInputMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             if min_value is not None:
                 value = min_value
             else:
                 value = 0.0  # We set a float as default
+
+        state[key] = value
 
         int_value = isinstance(value, numbers.Integral)
         float_value = isinstance(value, float)

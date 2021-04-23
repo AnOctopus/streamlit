@@ -147,12 +147,14 @@ class SliderMixin:
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
-        # Value not passed in, try to get it from state
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         # Value not in state, use default
         if value is None:
             value = min_value if min_value is not None else 0
+
+        state[key] = value
 
         SUPPORTED_TYPES = {
             int: SliderProto.INT,

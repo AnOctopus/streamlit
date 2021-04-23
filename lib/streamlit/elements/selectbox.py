@@ -77,7 +77,6 @@ class SelectboxMixin:
 
         # legacy api compatibility
         if value is None and index is not None:
-            print("setting value from index")
             value = options[index]
 
         if key is None:
@@ -85,19 +84,19 @@ class SelectboxMixin:
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
-        print(f"force_set_value is {force_set_value}")
 
         if value is None:
-            value = state[key]
-            print(f"setting value from state: {value}")
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = options[0]
-            print(f"setting value to be default: {value}")
 
         if value not in options:
             raise StreamlitAPIException(
                 f"Selectbox value not in the options list: {value}"
             )
+
+        state[key] = value
 
         # if len(options) > 0 and not 0 <= index < len(options):
         #     raise StreamlitAPIException(
@@ -105,7 +104,6 @@ class SelectboxMixin:
         #     )
 
         index = options.index(value)
-        print(f"index={index}, value={value}")
 
         selectbox_proto = SelectboxProto()
         selectbox_proto.label = label

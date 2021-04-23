@@ -90,6 +90,9 @@ class _StringSet:
         self._lock = threading.Lock()
         self._items = set()
 
+    def __iter__(self):
+        return iter(self._items)
+
     def clear(self) -> None:
         """Clears all items in the set."""
         with self._lock:

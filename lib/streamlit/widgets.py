@@ -191,3 +191,18 @@ def beta_widget_value(key: str) -> Any:
         return None
     else:
         return deserializer(widget_value)
+
+
+def widget_values() -> Dict[str, Any]:
+    import streamlit.report_thread as ReportThread
+    from streamlit.server.server import Server
+    import streamlit.elements.utils as utils
+
+    ctx = ReportThread.get_report_ctx()
+
+    if ctx is None:
+        return None
+
+    this_session = Server.get_current().get_session_by_id(ctx.session_id)
+    widget_states: WidgetStateManager = this_session.get_widget_states()
+    return widget_states._widget_states

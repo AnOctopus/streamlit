@@ -62,10 +62,13 @@ class ColorPickerMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         # set value default
         if value is None:
             value = "#000000"
+
+        state[key] = value
 
         # make sure the value is a string
         if not isinstance(value, str):

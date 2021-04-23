@@ -66,12 +66,14 @@ class CheckboxMixin:
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
-        # Value not passed in, try to get it from state
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         # Value not in state, use default
         if value is None:
             value = False
+
+        state[key] = value
 
         value = bool(value)
 

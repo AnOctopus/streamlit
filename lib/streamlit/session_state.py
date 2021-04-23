@@ -14,16 +14,15 @@
 
 import streamlit.report_thread as ReportThread
 from streamlit.errors import StreamlitAPIException
-from streamlit.widgets import beta_widget_value
-from typing import Optional, Dict, Union, Any, TYPE_CHECKING
+from streamlit.widgets import beta_widget_value, widget_values
+from typing import Optional, Dict, Union, Any, TYPE_CHECKING, Iterator
+from collections.abc import MutableMapping
 
 if TYPE_CHECKING:
     from streamlit.report_session import ReportSession
 
-Namespace = Dict[str, Any]
 
-
-class SessionState:
+class SessionState(MutableMapping):
     def __init__(self):
         """SessionState is just a mechanism for users to get and set properties
         based on their application.
@@ -41,11 +40,8 @@ class SessionState:
         >>> session_state.favorite_color
         'black'
         """
-        # _new_state must be set first to avoid initialization issues
-        self._new_state: Namespace = {}
-        self._old_state: Namespace = {}
-        # self._new_state.clear()
-        # self._old_state.clear()
+        self._new_state: Dict[str, Any] = {}
+        self._old_state: Dict[str, Any] = {}
 
     def __getattr__(self, key: str) -> Optional[Any]:
         return self[key]
@@ -56,18 +52,38 @@ class SessionState:
     def get_old_value(self, key: str) -> Optional[Any]:
         return self._old_state.get(key, None)
 
+    def _get_merged(self) -> Dict[str, Any]:
+        widgets = widget_values()
+        merged = {**self._old_state, **widgets, **self._new_state}
+        return merged
+
+    def __len__(self) -> int:
+        merged = self._get_merged()
+        return len(merged)
+
+    def __iter__(self) -> Iterator[Any]:
+        merged = self._get_merged()
+        return iter(merged)
+
+    def __delitem__(self, v: str) -> None:
+        del self._new_state[v]
+        del self._old_state[v]
+
     def __setattr__(self, key: str, value: Any) -> None:
         # Initial setting of attributes must use the base method to avoid recursion
         if key in ["_new_state", "_old_state"]:
             super().__setattr__(key, value)
         else:
-            self._new_state[key] = value
-
-    def __contains__(self, key: str) -> bool:
-        return self[key] is not None
+            ctx = ReportThread.get_report_ctx()
+            if key in ctx.widget_ids_this_run:
+                raise StreamlitAPIException(
+                    "Setting the value of a widget after its creation is disallowed"
+                )
+            else:
+                self._new_state[key] = value
 
     def has_var_set(self, key: str) -> bool:
-        return self[key] is not None
+        return key in self
 
     def init_value(self, key: str, default_value: Any) -> None:
         if not self.has_var_set(key):
@@ -77,18 +93,10 @@ class SessionState:
         for key, value in kwargs.items():
             self.init_value(key, value)
 
-    def get_value(self, key: str) -> Optional[Any]:
-        new_state_value = self._new_state.get(key, None)
-        if new_state_value is not None:
-            return new_state_value
-
-        old_state_value = self._old_state.get(key, None)
-        return old_state_value
-
     def __str__(self):
         return str(f"_new_state={self._new_state}, _old_state={self._old_state}")
 
-    def __getitem__(self, key: str) -> Optional[Any]:
+    def __getitem__(self, key: str) -> Any:
         new_state_value = self._new_state.get(key, None)
         if new_state_value is not None:
             return new_state_value
@@ -98,9 +106,17 @@ class SessionState:
             return widget_state
 
         old_state_value = self._old_state.get(key, None)
-        return old_state_value
+        if old_state_value is not None:
+            return old_state_value
+
+        raise KeyError
 
     def __setitem__(self, key: str, value: Any) -> None:
+        ctx = ReportThread.get_report_ctx()
+        if key in ctx.widget_ids_this_run:
+            raise StreamlitAPIException(
+                "Setting the value of a widget after its creation is disallowed"
+            )
         self._new_state[key] = value
 
     def make_state_old(self) -> None:

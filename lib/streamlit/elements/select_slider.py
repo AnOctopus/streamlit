@@ -102,10 +102,13 @@ class SelectSliderMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
 
         if len(options) == 0:
             raise StreamlitAPIException("The `options` argument needs to be non-empty")
+
+        state[key] = value
 
         is_range_value = isinstance(value, (list, tuple))
         slider_value = value

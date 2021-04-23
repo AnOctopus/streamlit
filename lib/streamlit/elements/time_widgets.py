@@ -61,9 +61,12 @@ class TimeWidgetsMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = datetime.now().time()
+
+        state[key] = value
 
         # Ensure that the value is either datetime/time
         if not isinstance(value, datetime) and not isinstance(value, time):
@@ -153,9 +156,12 @@ class TimeWidgetsMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = datetime.now().date()
+
+        state[key] = value
 
         single_value = isinstance(value, (date, datetime))
         range_value = isinstance(value, (list, tuple)) and len(value) in (0, 1, 2)

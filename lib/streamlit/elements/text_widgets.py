@@ -75,9 +75,12 @@ class TextWidgetsMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = ""
+
+        state[key] = value
 
         text_input_proto = TextInputProto()
         text_input_proto.label = label
@@ -171,9 +174,12 @@ class TextWidgetsMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = ""
+
+        state[key] = value
 
         text_area_proto = TextAreaProto()
         text_area_proto.label = label

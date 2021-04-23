@@ -88,10 +88,12 @@ class RadioMixin:
         force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
-            # what if this value is not in options?
-            value = state[key]
+            # Value not passed in, try to get it from state
+            value = state.get(key, None)
         if value is None:
             value = options[0]
+
+        state[key] = value
 
         index = options.index(value)
         if not isinstance(index, int):
