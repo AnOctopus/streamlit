@@ -26,7 +26,7 @@ from streamlit.media_file_manager import media_file_manager
 from streamlit.report_thread import ReportThread
 from streamlit.report_thread import get_report_ctx
 from streamlit.script_request_queue import ScriptRequest
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 from streamlit.logger import get_logger
 from streamlit.proto.ClientState_pb2 import ClientState
 

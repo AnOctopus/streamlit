@@ -33,7 +33,7 @@ from streamlit.js_number import JSNumber
 from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
 from .utils import register_widget
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 from streamlit.widgets import beta_widget_value
 
 

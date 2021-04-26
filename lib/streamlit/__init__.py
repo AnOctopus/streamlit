@@ -55,7 +55,7 @@ _LOGGER = _logger.get_logger("root")
 
 # Give the package a version.
 import pkg_resources as _pkg_resources
-from typing import List
+from typing import List, Any, Iterator
 
 # This used to be pkg_resources.require('streamlit') but it would cause
 # pex files to fail. See #394 for more details.
@@ -162,31 +162,57 @@ write = _main.write  # noqa: E221
 color_picker = _main.color_picker  # noqa: E221
 
 
-class ui:
-    button = wrap_widget(button, "on_click")
-    text_input = wrap_widget(text_input, "on_change")
-    text_area = wrap_widget(text_area, "on_change")
-    select_slider = wrap_widget(select_slider, "on_change")
-    selectbox = wrap_widget(selectbox, "on_change")
-    slider = wrap_widget(slider, "on_change")
-    radio = wrap_widget(radio, "on_change")
-    checkbox = wrap_widget(checkbox, "on_change")
-    color_picker = wrap_widget(color_picker, "on_change")
-    number_input = wrap_widget(number_input, "on_change")
-    multiselect = wrap_widget(multiselect, "on_change")
-    time_input = wrap_widget(time_input, "on_change")
-    date_input = wrap_widget(date_input, "on_change")
-
-
 # Config
 
 get_option = _config.get_option
 from streamlit.commands.page_config import set_page_config
 
 # Session State
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 
-get_state = get_session_state
+
+class LazySessionState:
+    """A lazy wrapper around SessionState.
+
+    SessionState can't be instantiated normally in __init__, because there may not be a ReportSession yet.
+    So instead we have this wrapper, which delegates to the SessionState for the active ReportSession,
+    but this will only be interacted with in an app script, when a ReportSession exists.
+    """
+
+    def __getattr__(self, k: str) -> Any:
+        state = get_session_state()
+        return state[k]
+
+    def __setattr__(self, k: str, v: Any) -> None:
+        state = get_session_state()
+        state[k] = v
+
+    def __getitem__(self, k: str) -> Any:
+        state = get_session_state()
+        return state[k]
+
+    def __setitem__(self, k: str, v: Any) -> None:
+        state = get_session_state()
+        state[k] = v
+
+    def __len__(self) -> int:
+        state = get_session_state()
+        return len(state)
+
+    def __iter__(self) -> Iterator[Any]:
+        state = get_session_state()
+        return iter(state)
+
+    def __delitem__(self, k: str) -> None:
+        state = get_session_state()
+        del state[k]
+
+    def __str__(self) -> str:
+        state = get_session_state()
+        return str(state)
+
+
+session_state = LazySessionState()
 
 
 def _beta_warning(func, date):

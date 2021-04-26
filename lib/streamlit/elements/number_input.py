@@ -20,7 +20,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.js_number import JSNumber, JSNumberBoundsException
 from streamlit.proto.NumberInput_pb2 import NumberInput as NumberInputProto
 from .utils import register_widget, NoValue
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 
 
 class NumberInputMixin:

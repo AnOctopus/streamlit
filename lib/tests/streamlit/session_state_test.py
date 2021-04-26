@@ -16,7 +16,7 @@ import pytest
 import unittest
 from unittest.mock import patch, Mock
 from streamlit.report_session import ReportSession
-from streamlit.session_state import SessionState, get_session_state, get_current_session
+from streamlit.session import SessionState, get_session_state, get_current_session
 
 
 class SessionStateTest(unittest.TestCase):

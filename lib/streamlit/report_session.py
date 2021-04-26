@@ -45,7 +45,7 @@ import streamlit.elements.exception as exception
 
 LOGGER = get_logger(__name__)
 if TYPE_CHECKING:
-    from streamlit.session_state import SessionState
+    from streamlit.session import SessionState
 
 
 class ReportSessionState(Enum):

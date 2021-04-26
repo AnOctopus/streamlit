@@ -19,7 +19,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
 from streamlit.type_util import ensure_iterable
 from .utils import register_widget
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 
 
 class SelectSliderMixin:

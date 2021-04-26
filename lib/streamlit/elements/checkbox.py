@@ -17,7 +17,7 @@ from typing import cast, Optional
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
 from .utils import register_widget
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 
 
 class CheckboxMixin:

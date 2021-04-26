@@ -19,7 +19,7 @@ import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.ColorPicker_pb2 import ColorPicker as ColorPickerProto
 from .utils import register_widget
-from streamlit.session_state import get_session_state
+from streamlit.session import get_session_state
 
 
 class ColorPickerMixin:
