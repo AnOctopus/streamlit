@@ -23,6 +23,8 @@ from typing import (
     TypeVar,
     Union,
     Generic,
+    Tuple,
+    Dict,
 )
 
 from dataclasses import dataclass
@@ -52,7 +54,8 @@ class SliderMixin:
         step=None,
         format=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
         key: Optional[str] = None,
     ) -> Value:
         """Display a slider widget.
@@ -258,9 +261,9 @@ class SliderMixin:
             )
 
         # Ensure that all arguments are of the same type.
-        args = [min_value, max_value, step]
-        int_args = all(map(lambda a: isinstance(a, int), args))
-        float_args = all(map(lambda a: isinstance(a, float), args))
+        argsl = [min_value, max_value, step]
+        int_args = all(map(lambda a: isinstance(a, int), argsl))
+        float_args = all(map(lambda a: isinstance(a, float), argsl))
         # When min and max_value are the same timelike, step should be a timedelta
         timelike_args = (
             data_type in TIMELIKE_TYPES
@@ -438,8 +441,9 @@ class SliderMixin:
             slider_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
             deserializer=deserialize_slider,
+            args=args,
+            kwargs=kwargs,
         )
         self.dg._enqueue("slider", slider_proto)
         return value

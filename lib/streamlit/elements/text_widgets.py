@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional, Tuple, Any, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -31,7 +31,8 @@ class TextWidgetsMixin:
         key=None,
         type="default",
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a single-line text input widget.
 
@@ -111,7 +112,8 @@ class TextWidgetsMixin:
             text_input_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_text_input,
         )
         self.dg._enqueue("text_input", text_input_proto)
@@ -125,7 +127,8 @@ class TextWidgetsMixin:
         max_chars=None,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a multi-line text input widget.
 
@@ -203,7 +206,8 @@ class TextWidgetsMixin:
             text_area_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_text_area,
         )
         self.dg._enqueue("text_area", text_area_proto)

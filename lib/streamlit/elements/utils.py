@@ -17,7 +17,7 @@ import textwrap
 from streamlit import type_util
 from streamlit.report_thread import get_report_ctx
 from streamlit.errors import DuplicateWidgetID
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Tuple, Dict
 
 
 class NoValue:
@@ -87,8 +87,9 @@ def register_widget(
     user_key: Optional[str] = None,
     widget_func_name: Optional[str] = None,
     on_change_handler: Optional[Callable[..., None]] = None,
-    context: Optional[Any] = None,
     deserializer: Callable[[Any], Any] = lambda x: x,
+    args: Optional[Tuple[Any, ...]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
 ) -> Any:
     """Register a widget with Streamlit, and return its current ui_value.
     NOTE: This function should be called after the proto has been filled.
@@ -149,7 +150,9 @@ def register_widget(
         )
 
     if on_change_handler is not None:
-        ctx.widgets.add_callback(element_proto.id, deserializer, on_change_handler)
+        ctx.widgets.add_callback(
+            element_proto.id, deserializer, on_change_handler, args, kwargs
+        )
     else:
         ctx.widgets.add_deserializer(element_proto.id, deserializer)
 

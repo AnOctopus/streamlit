@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import re
-from typing import cast, Optional
+from typing import cast, Optional, Tuple, Dict, Any
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -24,7 +24,13 @@ from streamlit.session import get_session_state
 
 class ColorPickerMixin:
     def color_picker(
-        self, label, value: Optional[str] = None, key=None, on_change=None, context=None
+        self,
+        label,
+        value: Optional[str] = None,
+        key=None,
+        on_change=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a color picker widget.
 
@@ -104,7 +110,8 @@ class ColorPickerMixin:
             color_picker_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_color_picker,
         )
         self.dg._enqueue("color_picker", color_picker_proto)

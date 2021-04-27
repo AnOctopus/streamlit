@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
+from typing import cast, Optional, Tuple, Any, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -31,7 +31,8 @@ class SelectSliderMixin:
         format_func=str,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """
         Display a slider widget to select items from a list.
@@ -161,7 +162,8 @@ class SelectSliderMixin:
             slider_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_select_slider,
         )
         self.dg._enqueue("slider", slider_proto)

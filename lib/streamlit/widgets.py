@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from pprint import pprint
-from typing import Any, Optional, Dict, Callable
+from typing import Any, Optional, Dict, Callable, Tuple
+from dataclasses import dataclass
 
 from streamlit.proto.ClientState_pb2 import ClientState
 from streamlit.proto.WidgetStates_pb2 import WidgetStates, WidgetState
@@ -55,12 +56,19 @@ def coalesce_widget_states(
     return coalesced
 
 
+@dataclass
+class Args:
+    args: Optional[Tuple[Any, ...]] = None
+    kwargs: Optional[Dict[str, Any]] = None
+
+
 class WidgetStateManager(object):
     def __init__(self):
         self._widget_states: Dict[str, WidgetState] = {}
         self._previous_widget_states: Dict[str, WidgetState] = {}
         self._widget_callbacks: Dict[str, Callable[..., None]] = {}
         self._widget_deserializers: Dict[str, Callable[..., Any]] = {}
+        self._widget_args: Dict[str, Args] = {}
 
     def get_widget_value(self, widget_id: str) -> Optional[Any]:
         """Return the value of a widget, or None if no value has been set."""
@@ -84,12 +92,15 @@ class WidgetStateManager(object):
         widget_id: str,
         deserializer: Callable[..., Any],
         callback: Callable[..., None],
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Add a callback that will be called immediately before the app's
         next rerun if the given widget's value has changed.
         """
         self._widget_callbacks[widget_id] = callback
         self._widget_deserializers[widget_id] = deserializer
+        self._widget_args[widget_id] = Args(args, kwargs)
 
     def get_callback(self, widget_id: str) -> Optional[Callable[..., None]]:
         return self._widget_callbacks.get(widget_id, None)
@@ -107,10 +118,13 @@ class WidgetStateManager(object):
             if self.equivalent_values(new_state):
                 continue
 
-            deserializer = self._widget_deserializers.get(new_state.id, lambda x: x)
-            # The widget's value has changed - call its on_change callback.
-            new_value = deserializer(_get_widget_value(new_state))
-            callback(new_value)
+            arg = self._widget_args.get(new_state.id, None)
+            if arg is not None:
+                args = arg.args if arg.args is not None else ()
+                kwargs = arg.kwargs if arg.kwargs is not None else dict()
+                callback(*args, **kwargs)
+            else:
+                callback()
 
     def add_deserializer(
         self, widget_id: str, deserializer: Callable[..., Any]

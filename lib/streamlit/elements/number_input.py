@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numbers
-from typing import cast
+from typing import cast, Optional, Tuple, Any, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -34,7 +34,8 @@ class NumberInputMixin:
         format=None,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a numeric input widget.
 
@@ -130,18 +131,18 @@ class NumberInputMixin:
             )
 
         # Ensure that all arguments are of the same type.
-        args = [min_value, max_value, step]
+        argsl = [min_value, max_value, step]
 
         int_args = all(
             map(
                 lambda a: (
                     isinstance(a, numbers.Integral) or isinstance(a, type(None))
                 ),
-                args,
+                argsl,
             )
         )
         float_args = all(
-            map(lambda a: (isinstance(a, float) or isinstance(a, type(None))), args)
+            map(lambda a: (isinstance(a, float) or isinstance(a, type(None))), argsl)
         )
 
         if not int_args and not float_args:
@@ -239,7 +240,8 @@ class NumberInputMixin:
             number_input_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_number_input,
         )
         self.dg._enqueue("number_input", number_input_proto)

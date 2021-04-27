@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast, Any, Optional, Set, Iterable, List
+from typing import cast, Any, Optional, Set, Iterable, List, Tuple, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -31,7 +31,8 @@ class MultiSelectMixin:
         format_func=str,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a multiselect widget.
         The multiselect widget starts as empty.
@@ -149,7 +150,8 @@ class MultiSelectMixin:
             multiselect_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_multiselect,
         )
         self.dg._enqueue("multiselect", multiselect_proto, values)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast, Optional
+from typing import cast, Optional, Tuple, Dict, Any
 
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
@@ -27,7 +27,8 @@ class CheckboxMixin:
         value: Optional[bool] = None,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Display a checkbox widget.
 
@@ -92,7 +93,8 @@ class CheckboxMixin:
             checkbox_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_checkbox,
         )
         self.dg._enqueue("checkbox", checkbox_proto)

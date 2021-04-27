@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from datetime import datetime, date, time
-from typing import cast
+from typing import cast, Optional, Tuple, Any, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -24,7 +24,15 @@ from streamlit.session import get_session_state
 
 
 class TimeWidgetsMixin:
-    def time_input(self, label, value=None, key=None, on_change=None, context=None):
+    def time_input(
+        self,
+        label,
+        value=None,
+        key=None,
+        on_change=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
+    ):
         """Display a time input widget.
 
         Parameters
@@ -97,7 +105,8 @@ class TimeWidgetsMixin:
             time_input_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_time_input,
         )
         self.dg._enqueue("time_input", time_input_proto)
@@ -111,7 +120,8 @@ class TimeWidgetsMixin:
         max_value=None,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Display a date input widget.
 
@@ -219,7 +229,8 @@ class TimeWidgetsMixin:
             date_input_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_date_input,
         )
         self.dg._enqueue("date_input", date_input_proto)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast, Optional
+from typing import cast, Optional, Tuple, Any, Dict
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -32,7 +32,8 @@ class RadioMixin:
         format_func=str,
         key=None,
         on_change=None,
-        context=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Display a radio button widget.
 
@@ -129,7 +130,8 @@ class RadioMixin:
             radio_proto,
             user_key=key,
             on_change_handler=on_change,
-            context=context,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_radio_button,
         )
         self.dg._enqueue("radio", radio_proto)
