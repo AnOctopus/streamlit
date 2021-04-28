@@ -20,7 +20,7 @@ from .utils import register_widget
 
 
 class ButtonMixin:
-    def button(self, label, key=None, on_click=None) -> bool:
+    def button(self, label, key=None, on_change=None, args=None, kwargs=None) -> bool:
         """Display a button widget.
 
         Parameters
@@ -57,9 +57,13 @@ class ButtonMixin:
         button_proto.label = label
         button_proto.default = False
 
-        def on_change(new_value):
-            if new_value and on_click is not None:
-                on_click()
+        def on_change_handler(*args, **kwargs):
+            try:
+                new_value = streamlit.session_state[key]
+                if new_value and on_change is not None:
+                    on_change(*args, **kwargs)
+            except KeyError:
+                pass
 
         def deserialize_button(ui_value):
             return ui_value if ui_value is not None else False
@@ -68,7 +72,9 @@ class ButtonMixin:
             "button",
             button_proto,
             user_key=key,
-            on_change_handler=on_change,
+            on_change_handler=on_change_handler,
+            args=args,
+            kwargs=kwargs,
             deserializer=deserialize_button,
         )
         self.dg._enqueue("button", button_proto)
