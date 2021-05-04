@@ -49,12 +49,12 @@ class SliderMixin:
         label: str,
         min_value=None,
         max_value=None,
-        value: Optional[Value[T]] = None,
+        value=None,
         step=None,
         format=None,
         on_change=None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        args=None,
+        kwargs=None,
         key: Optional[str] = None,
     ) -> Value[T]:
         """Display a slider widget.
@@ -193,6 +193,52 @@ class SliderMixin:
             data_type = SliderProto.INT
         else:
             data_type = SUPPORTED_TYPES[type(value[0])]
+
+        if isinstance(int, value[0]):
+            if len(value) == 1:
+                value = SingleValue(value[0])
+            else:
+                value = RangeValue(value[0], value[1])
+
+            slider = IntSlider(
+                label, min_value, max_value, value, step, format, on_change, key
+            )
+        elif isinstance(float, value[0]):
+            if len(value) == 1:
+                value = SingleValue(value[0])
+            else:
+                value = RangeValue(value[0], value[1])
+
+            slider = FloatSlider(
+                label, min_value, max_value, value, step, format, on_change, key
+            )
+        elif isinstance(datetime, value[0]):
+            if len(value) == 1:
+                value = SingleValue(value[0])
+            else:
+                value = RangeValue(value[0], value[1])
+
+            slider = DateTimeSlider(
+                label, min_value, max_value, value, step, format, on_change, key
+            )
+        elif isinstance(date, value[0]):
+            if len(value) == 1:
+                value = SingleValue(value[0])
+            else:
+                value = RangeValue(value[0], value[1])
+
+            slider = DateSlider(
+                label, min_value, max_value, value, step, format, on_change, key
+            )
+        elif isinstance(time, value[0]):
+            if len(value) == 1:
+                value = SingleValue(value[0])
+            else:
+                value = RangeValue(value[0], value[1])
+
+            slider = TimeSlider(
+                label, min_value, max_value, value, step, format, on_change, key
+            )
 
         datetime_min = time.min
         datetime_max = time.max
@@ -360,22 +406,6 @@ class SliderMixin:
 
         # Now, convert to microseconds (so we can serialize datetime to a long)
         if data_type in TIMELIKE_TYPES:
-            SECONDS_TO_MICROS = 1000 * 1000
-            DAYS_TO_MICROS = 24 * 60 * 60 * SECONDS_TO_MICROS
-
-            def _delta_to_micros(delta):
-                return (
-                    delta.microseconds
-                    + delta.seconds * SECONDS_TO_MICROS
-                    + delta.days * DAYS_TO_MICROS
-                )
-
-            UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
-
-            def _datetime_to_micros(dt):
-                # If dt is naive, Python converts from local time
-                utc_dt = dt.astimezone(timezone.utc)
-                return _delta_to_micros(utc_dt - UTC_EPOCH)
 
             # Restore times/datetimes to original timezone (dates are always naive)
             orig_tz = (
@@ -460,6 +490,9 @@ class SingleValue(Generic[T]):
     def to_list(self) -> List[T]:
         return [self.value]
 
+    def min(self) -> T:
+        return self.value
+
 
 @dataclass(frozen=True)
 class RangeValue(Generic[T]):
@@ -469,8 +502,30 @@ class RangeValue(Generic[T]):
     def to_list(self) -> List[T]:
         return [self.lower, self.upper]
 
+    def min(self) -> T:
+        return self.lower
+
 
 V = Union[SingleValue[T], RangeValue[T]]
+
+SECONDS_TO_MICROS = 1000 * 1000
+DAYS_TO_MICROS = 24 * 60 * 60 * SECONDS_TO_MICROS
+
+UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _delta_to_micros(delta: timedelta):
+    return (
+        delta.microseconds
+        + delta.seconds * SECONDS_TO_MICROS
+        + delta.days * DAYS_TO_MICROS
+    )
+
+
+def _datetime_to_micros(dt):
+    # If dt is naive, Python converts from local time
+    utc_dt = dt.astimezone(timezone.utc)
+    return _delta_to_micros(utc_dt - UTC_EPOCH)
 
 
 @dataclass
@@ -614,6 +669,271 @@ class FloatSlider:
         slider_proto.options[:] = []
         if self.force_set_value:
             slider_proto.value[:] = self.value.to_list()
+            slider_proto.valueSet = True
+
+        return slider_proto
+
+
+@dataclass
+class DateTimeSlider:
+    label: str
+    key: str
+    min_value: datetime
+    max_value: datetime
+    value: V[datetime]
+    force_set_value: bool
+    step: timedelta
+    format: str
+    on_change: Optional[Callable[..., Any]]
+    data_type: Any = SliderProto.DATETIME
+
+    def __init__(
+        self,
+        label: str,
+        min_value: datetime = None,
+        max_value: datetime = None,
+        value: Optional[V[datetime]] = None,
+        step: timedelta = timedelta(days=1),
+        format: str = "YYYY-MM-DD",
+        on_change=None,
+        key: Optional[str] = None,
+    ):
+        self.label = label
+        if key is not None:
+            self.key = key
+        else:
+            self.key = label
+
+        if min_value is None:
+            min_value = value.min() - timedelta(days=14)
+
+        if max_value is None:
+            max_value = value.min() + timedelta(days=14)
+
+        self.min_value = min(min_value, max_value)
+        self.max_value = max(min_value, max_value)
+
+        self.step = step
+        self.format = format
+
+        state = get_session_state()
+        # true if value was passed in, or will be gotten from the new part of state
+        self.force_set_value = value is not None or state.is_new_value(self.key)
+
+        # Value not passed in, try to get it from state
+        if value is None:
+            value = state[self.key]
+        # Value not in state, use default
+        if value is None:
+            value = SingleValue(self.min_value)
+
+        self.value = value
+        if on_change is not None:
+            self.on_change = on_change
+
+    def to_protobuf(self) -> SliderProto:
+        value = list(map(_datetime_to_micros, self.value.to_list()))
+        min_value = _datetime_to_micros(self.min_value)
+        max_value = _datetime_to_micros(self.max_value)
+        step = _delta_to_micros(self.step)
+
+        slider_proto = SliderProto()
+        slider_proto.label = self.label
+        slider_proto.format = self.format
+        slider_proto.default[:] = value
+        slider_proto.min = min_value
+        slider_proto.max = max_value
+        slider_proto.step = step
+        slider_proto.data_type = self.data_type
+        slider_proto.options[:] = []
+        if self.force_set_value:
+            slider_proto.value[:] = value
+            slider_proto.valueSet = True
+
+        return slider_proto
+
+
+@dataclass
+class TimeSlider:
+    label: str
+    key: str
+    min_value: time
+    max_value: time
+    value: V[time]
+    force_set_value: bool
+    step: timedelta
+    format: str
+    on_change: Optional[Callable[..., Any]]
+    data_type: Any = SliderProto.TIME
+
+    def __init__(
+        self,
+        label: str,
+        min_value: time = None,
+        max_value: time = None,
+        value: Optional[V[time]] = None,
+        step: timedelta = timedelta(days=1),
+        format: str = "YYYY-MM-DD",
+        on_change=None,
+        key: Optional[str] = None,
+    ):
+        self.label = label
+        if key is not None:
+            self.key = key
+        else:
+            self.key = label
+
+        if min_value is None:
+            min_value = time.min.replace(tzinfo=value.min().tzinfo)
+
+        if max_value is None:
+            max_value = time.max.replace(tzinfo=value.min().tzinfo)
+
+        self.min_value = min(min_value, max_value)
+        self.max_value = max(min_value, max_value)
+
+        self.step = step
+        self.format = format
+
+        state = get_session_state()
+        # true if value was passed in, or will be gotten from the new part of state
+        self.force_set_value = value is not None or state.is_new_value(self.key)
+
+        # Value not passed in, try to get it from state
+        if value is None:
+            value = state[self.key]
+        # Value not in state, use default
+        if value is None:
+            value = SingleValue(self.min_value)
+
+        self.value = value
+        if on_change is not None:
+            self.on_change = on_change
+
+    def to_protobuf(self) -> SliderProto:
+
+        value = list(map(_datetime_to_micros, self.value.to_list()))
+        min_value = _datetime_to_micros(self.min_value)
+        max_value = _datetime_to_micros(self.max_value)
+        step = _delta_to_micros(self.step)
+
+        slider_proto = SliderProto()
+        slider_proto.label = self.label
+        slider_proto.format = self.format
+        slider_proto.default[:] = value
+        slider_proto.min = min_value
+        slider_proto.max = max_value
+        slider_proto.step = step
+        slider_proto.data_type = self.data_type
+        slider_proto.options[:] = []
+        if self.force_set_value:
+            slider_proto.value[:] = value
+            slider_proto.valueSet = True
+
+        return slider_proto
+
+
+@dataclass
+class DateSlider:
+    label: str
+    key: str
+    min_value: date
+    max_value: date
+    value: V[date]
+    force_set_value: bool
+    step: timedelta
+    format: str
+    on_change: Optional[Callable[..., Any]]
+    data_type: Any = SliderProto.DATE
+
+    def __init__(
+        self,
+        label: str,
+        min_value: date = None,
+        max_value: date = None,
+        value: Optional[V[date]] = None,
+        step: timedelta = timedelta(minutes=15),
+        format: str = "HH:mm",
+        on_change=None,
+        key: Optional[str] = None,
+    ):
+        self.label = label
+        if key is not None:
+            self.key = key
+        else:
+            self.key = label
+
+        if min_value is None:
+            min_value = value.min() - timedelta(days=14)
+
+        if max_value is None:
+            max_value = value.min() + timedelta(days=14)
+
+        self.min_value = min(min_value, max_value)
+        self.max_value = max(min_value, max_value)
+
+        self.step = step
+        self.format = format
+
+        state = get_session_state()
+        # true if value was passed in, or will be gotten from the new part of state
+        self.force_set_value = value is not None or state.is_new_value(self.key)
+
+        # Value not passed in, try to get it from state
+        if value is None:
+            value = state[self.key]
+        # Value not in state, use default
+        if value is None:
+            value = SingleValue(self.min_value)
+
+        self.value = value
+        if on_change is not None:
+            self.on_change = on_change
+
+    def to_protobuf(self) -> SliderProto:
+        def _date_to_datetime(date):
+            return datetime.combine(date, time())
+
+        value = list(map(_date_to_datetime, self.value.to_list()))
+        min_value = _date_to_datetime(self.min_value)
+        max_value = _date_to_datetime(self.max_value)
+
+        def _delta_to_micros(delta):
+            return (
+                delta.microseconds
+                + delta.seconds * SECONDS_TO_MICROS
+                + delta.days * DAYS_TO_MICROS
+            )
+
+        def _datetime_to_micros(dt):
+            # If dt is naive, Python converts from local time
+            utc_dt = dt.astimezone(timezone.utc)
+            return _delta_to_micros(utc_dt - UTC_EPOCH)
+
+        # Restore times/datetimes to original timezone (dates are always naive)
+        orig_tz = None
+
+        def _micros_to_datetime(micros):
+            utc_dt = UTC_EPOCH + timedelta(microseconds=micros)
+            # Convert from utc back to original time (local time if naive)
+            return utc_dt.astimezone(orig_tz).replace(tzinfo=orig_tz)
+
+        value = list(map(_datetime_to_micros, value))
+        min_value = _datetime_to_micros(min_value)
+        max_value = _datetime_to_micros(max_value)
+        step = _delta_to_micros(self.step)
+
+        slider_proto = SliderProto()
+        slider_proto.label = self.label
+        slider_proto.format = self.format
+        slider_proto.default[:] = value
+        slider_proto.min = min_value
+        slider_proto.max = max_value
+        slider_proto.step = step
+        slider_proto.data_type = self.data_type
+        slider_proto.options[:] = []
+        if self.force_set_value:
+            slider_proto.value[:] = value
             slider_proto.valueSet = True
 
         return slider_proto
