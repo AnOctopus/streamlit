@@ -18,14 +18,19 @@
 import React from "react"
 import { Plus, Minus } from "@emotion-icons/open-iconic"
 import { sprintf } from "sprintf-js"
-import { logWarning } from "lib/log"
-import { NumberInput as NumberInputProto } from "autogen/proto"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
+import { logWarning } from "src/lib/log"
+import { NumberInput as NumberInputProto } from "src/autogen/proto"
+import { WidgetStateManager, Source } from "src/lib/WidgetStateManager"
+import TooltipIcon from "src/components/shared/TooltipIcon"
+import { Placement } from "src/components/shared/Tooltip"
 
-import Icon from "components/shared/Icon"
+import Icon from "src/components/shared/Icon"
 import { Input as UIInput } from "baseui/input"
-import InputInstructions from "components/shared/InputInstructions/InputInstructions"
-import { StyledWidgetLabel } from "components/widgets/BaseWidget"
+import InputInstructions from "src/components/shared/InputInstructions/InputInstructions"
+import {
+  StyledWidgetLabel,
+  StyledWidgetLabelHelp,
+} from "src/components/widgets/BaseWidget"
 import {
   StyledInputContainer,
   StyledInputControl,
@@ -74,8 +79,7 @@ class NumberInput extends React.PureComponent<Props, State> {
   get initialValue(): number {
     // If WidgetStateManager knew a value for this widget, initialize to that.
     // Otherwise, use the default value from the widget protobuf
-    const widgetId = this.props.element.id
-    const storedValue = this.props.widgetMgr.getIntValue(widgetId)
+    const storedValue = this.props.widgetMgr.getIntValue(this.props.element)
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
@@ -139,7 +143,6 @@ class NumberInput extends React.PureComponent<Props, State> {
     const { element, widgetMgr } = this.props
     const data = this.props.element
 
-    const widgetId = element.id
     const min = this.getMin()
     const max = this.getMax()
 
@@ -152,9 +155,9 @@ class NumberInput extends React.PureComponent<Props, State> {
       const valueToBeSaved = value || value === 0 ? value : data.default
 
       if (this.isIntData()) {
-        widgetMgr.setIntValue(widgetId, valueToBeSaved, source)
+        widgetMgr.setIntValue(element, valueToBeSaved, source)
       } else {
-        widgetMgr.setDoubleValue(widgetId, valueToBeSaved, source)
+        widgetMgr.setDoubleValue(element, valueToBeSaved, source)
       }
 
       this.setState({
@@ -261,6 +264,14 @@ class NumberInput extends React.PureComponent<Props, State> {
     return (
       <div className="stNumberInput" style={style}>
         <StyledWidgetLabel>{element.label}</StyledWidgetLabel>
+        {element.help && (
+          <StyledWidgetLabelHelp>
+            <TooltipIcon
+              content={element.help}
+              placement={Placement.TOP_RIGHT}
+            />
+          </StyledWidgetLabelHelp>
+        )}
         <StyledInputContainer>
           <UIInput
             type="number"

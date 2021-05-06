@@ -17,30 +17,34 @@
 
 import copy from "copy-to-clipboard"
 import React, { ReactElement, ReactNode } from "react"
-import ProgressBar from "components/shared/ProgressBar"
-import { Kind } from "components/shared/Button"
+import ProgressBar from "src/components/shared/ProgressBar"
+import { Kind } from "src/components/shared/Button"
 import Modal, {
   ModalHeader,
   ModalBody,
   ModalFooter,
   ModalButton,
-} from "components/shared/Modal"
+} from "src/components/shared/Modal"
 import { HotKeys } from "react-hotkeys"
 
 import {
   ScriptChangedDialog,
   Props as ScriptChangedDialogProps,
-} from "components/core/StreamlitDialog/ScriptChangedDialog"
-import { IException } from "autogen/proto"
-import { SessionInfo } from "lib/SessionInfo"
-import { STREAMLIT_HOME_URL } from "urls"
+} from "src/components/core/StreamlitDialog/ScriptChangedDialog"
+import { IException } from "src/autogen/proto"
+import { SessionInfo } from "src/lib/SessionInfo"
+import { STREAMLIT_HOME_URL } from "src/urls"
 import { Props as SettingsDialogProps, SettingsDialog } from "./SettingsDialog"
+import ThemeCreatorDialog, {
+  Props as ThemeCreatorDialogProps,
+} from "./ThemeCreatorDialog"
 
 import {
   StyledUploadFirstLine,
   StyledRerunHeader,
   StyledCommandLine,
   StyledUploadUrl,
+  StyledDeployErrorContent,
 } from "./styled-components"
 
 type PlainEventHandler = () => void
@@ -53,6 +57,10 @@ interface ScriptChangedProps extends ScriptChangedDialogProps {
   type: DialogType.SCRIPT_CHANGED
 }
 
+interface ThemeCreatorProps extends ThemeCreatorDialogProps {
+  type: DialogType.THEME_CREATOR
+}
+
 export type DialogProps =
   | AboutProps
   | ClearCacheProps
@@ -60,9 +68,11 @@ export type DialogProps =
   | SettingsProps
   | ScriptChangedProps
   | ScriptCompileErrorProps
+  | ThemeCreatorProps
   | UploadProgressProps
   | UploadedProps
   | WarningProps
+  | DeployErrorProps
 
 export enum DialogType {
   ABOUT = "about",
@@ -71,9 +81,11 @@ export enum DialogType {
   SETTINGS = "settings",
   SCRIPT_CHANGED = "scriptChanged",
   SCRIPT_COMPILE_ERROR = "scriptCompileError",
+  THEME_CREATOR = "themeCreator",
   UPLOAD_PROGRESS = "uploadProgress",
   UPLOADED = "uploaded",
   WARNING = "warning",
+  DEPLOY_ERROR = "deployError",
 }
 
 export function StreamlitDialog(dialogProps: DialogProps): ReactNode {
@@ -90,12 +102,16 @@ export function StreamlitDialog(dialogProps: DialogProps): ReactNode {
       return <ScriptChangedDialog {...dialogProps} />
     case DialogType.SCRIPT_COMPILE_ERROR:
       return scriptCompileErrorDialog(dialogProps)
+    case DialogType.THEME_CREATOR:
+      return <ThemeCreatorDialog {...dialogProps} />
     case DialogType.UPLOAD_PROGRESS:
       return uploadProgressDialog(dialogProps)
     case DialogType.UPLOADED:
       return uploadedDialog(dialogProps)
     case DialogType.WARNING:
       return warningDialog(dialogProps)
+    case DialogType.DEPLOY_ERROR:
+      return deployErrorDialog(dialogProps)
     case undefined:
       return noDialog(dialogProps)
     default:
@@ -372,6 +388,51 @@ function warningDialog(props: WarningProps): ReactElement {
       <ModalFooter>
         <ModalButton kind={Kind.PRIMARY} onClick={props.onClose}>
           Done
+        </ModalButton>
+      </ModalFooter>
+    </Modal>
+  )
+}
+
+interface DeployErrorProps {
+  type: DialogType.DEPLOY_ERROR
+  title: string
+  msg: ReactNode
+  onClose: PlainEventHandler
+  onContinue?: PlainEventHandler
+  onTryAgain: PlainEventHandler
+}
+
+/**
+ * Modal used to show deployment errors
+ */
+function deployErrorDialog({
+  title,
+  msg,
+  onClose,
+  onContinue,
+  onTryAgain,
+}: DeployErrorProps): ReactElement {
+  const handlePrimaryButton = (): void => {
+    onClose()
+
+    if (onContinue) {
+      onContinue()
+    }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose}>
+      <ModalHeader>{title}</ModalHeader>
+      <ModalBody>
+        <StyledDeployErrorContent>{msg}</StyledDeployErrorContent>
+      </ModalBody>
+      <ModalFooter>
+        <ModalButton kind={Kind.SECONDARY} onClick={onTryAgain}>
+          Try again
+        </ModalButton>
+        <ModalButton kind={Kind.PRIMARY} onClick={handlePrimaryButton}>
+          {onContinue ? "Continue anyway" : "Close"}
         </ModalButton>
       </ModalFooter>
     </Modal>

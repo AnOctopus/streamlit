@@ -25,6 +25,7 @@ import pandas as pd
 
 import streamlit as st
 from streamlit import type_util
+from streamlit.error_util import handle_uncaught_app_exception
 from streamlit.errors import StreamlitAPIException
 
 
@@ -37,6 +38,20 @@ class StreamlitWriteTest(unittest.TestCase):
     later on, we don't have to test it in st.write In st.write, all we're
     trying to check is that the right st.* method gets called
     """
+
+    def test_repr_html(self):
+        """Test st.write with an object that defines _repr_html_."""
+
+        class FakeHTMLable(object):
+            def _repr_html_(self):
+                return "<strong>hello world</strong>"
+
+        with patch("streamlit.delta_generator.DeltaGenerator.markdown") as p:
+            st.write(FakeHTMLable())
+
+            p.assert_called_once_with(
+                "<strong>hello world</strong>", unsafe_allow_html=True
+            )
 
     def test_string(self):
         """Test st.write with a string."""
@@ -190,8 +205,8 @@ class StreamlitWriteTest(unittest.TestCase):
         # with the proper arguments.
         with patch("streamlit.delta_generator.DeltaGenerator.markdown") as m, patch(
             "streamlit.delta_generator.DeltaGenerator.exception",
-            side_effect=st.exception,
-        ) as e:
+            side_effect=handle_uncaught_app_exception,
+        ):
             m.side_effect = Exception("some exception")
 
             with self.assertRaises(Exception):

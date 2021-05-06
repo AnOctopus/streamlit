@@ -16,7 +16,8 @@ from typing import cast, Optional, Tuple, Dict, Any
 
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
-from .utils import register_widget
+from streamlit.widgets import register_widget
+from .form import current_form_id
 from streamlit.session import get_session_state
 
 
@@ -81,6 +82,9 @@ class CheckboxMixin:
         checkbox_proto = CheckboxProto()
         checkbox_proto.label = label
         checkbox_proto.default = value
+        checkbox_proto.form_id = current_form_id(self.dg)
+        if help is not None:
+            checkbox_proto.help = help
         if force_set_value:
             checkbox_proto.value = value
             checkbox_proto.valueSet = True

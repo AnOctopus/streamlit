@@ -16,17 +16,46 @@
  */
 
 import styled from "@emotion/styled"
+import { Theme } from "src/theme"
 
 export const StyledHorizontalBlock = styled.div(({ theme }) => ({
+  // While using flex for columns, padding is used for large screens and gap
+  // for small ones. This can be adjusted once more information is passed.
+  // More information and discussions can be found: Issue #2716, PR #2811
   display: "flex",
-  gap: theme.spacing.sm,
   flexWrap: "wrap",
+  flexGrow: 1,
+
+  // flexbox gap polyfill, ripped from
+  // https://www.npmjs.com/package/flex-gap-polyfill as it's not currently
+  // possible to use styled components with PostCSS
+  "--fgp-gap-container": `calc(var(--fgp-gap-parent, 0px) - ${theme.spacing.lg}) !important`,
+  "--fgp-gap": "var(--fgp-gap-container)",
+  "margin-top": "var(--fgp-gap)",
+  "margin-right": "var(--fgp-gap)",
+  "& > *": {
+    "--fgp-gap-parent": `${theme.spacing.lg} !important`,
+    "--fgp-gap-item": `${theme.spacing.lg} !important`,
+    "--fgp-gap": "var(--fgp-gap-item) !important",
+    "margin-top": "var(--fgp-gap)",
+    "margin-right": "var(--fgp-gap)",
+  },
 }))
 
 export interface StyledElementContainerProps {
   isStale: boolean
   isHidden: boolean
 }
+
+const containerMargin = (occupiesSpace: boolean, theme: any): any => ({
+  marginTop: 0,
+  marginRight: 0,
+  marginBottom: occupiesSpace ? theme.spacing.lg : 0,
+  marginLeft: 0,
+  ":last-child": {
+    marginBottom: 0,
+  },
+})
 
 export const StyledElementContainer = styled.div<StyledElementContainerProps>(
   ({ theme, isStale, isHidden }) => ({
@@ -35,10 +64,9 @@ export const StyledElementContainer = styled.div<StyledElementContainerProps>(
     // Allows to have absolutely-positioned nodes inside report elements, like
     // floating buttons.
     position: "relative",
-    marginTop: 0,
-    marginRight: 0,
-    marginBottom: isHidden ? 0 : theme.spacing.lg,
-    marginLeft: 0,
+
+    ...containerMargin(!isHidden, theme),
+
     "@media print": {
       "@-moz-document url-prefix()": {
         display: "block",
@@ -56,26 +84,23 @@ export const StyledElementContainer = styled.div<StyledElementContainerProps>(
 )
 
 export interface StyledColumnProps {
+  isEmpty: boolean
   weight: number
-  width: number
-  withLeftPadding: boolean
+  totalWeight: number
 }
-export const StyledColumn = styled.div<StyledColumnProps>(
-  ({ weight, width, withLeftPadding, theme }) => {
-    // The minimal viewport width used to determine the minimal
-    // fixed column width while accounting for column proportions.
-    // Randomly selected based on visual experimentation.
 
-    // When working with columns, width is driven by what percentage of space
-    // the column takes in relation to the total number of columns
-    const columnPercentage = weight / width
+export const StyledColumn = styled.div<StyledColumnProps>(
+  ({ isEmpty, weight, totalWeight, theme }) => {
+    const columnPercentage = weight / totalWeight
 
     return {
-      // Flex determines how much space is allocated to this column.
-      flex: weight,
-      width,
-      paddingLeft: withLeftPadding ? theme.spacing.sm : theme.spacing.none,
+      // Calculate width based on percentage, but fill all available space,
+      // e.g. if it overflows to next row.
+      width: `calc(${columnPercentage * 100}% - ${theme.spacing.lg})`,
+      flex: `1 1 calc(${columnPercentage * 100}% - ${theme.spacing.lg})`,
+
       [`@media (max-width: ${theme.breakpoints.columns})`]: {
+        display: isEmpty ? "none" : undefined,
         minWidth: `${columnPercentage > 0.5 ? "min" : "max"}(
           ${columnPercentage * 100}% - ${theme.spacing.twoXL},
           ${columnPercentage * parseInt(theme.breakpoints.columns, 10)}px)`,
@@ -83,3 +108,35 @@ export const StyledColumn = styled.div<StyledColumnProps>(
     }
   }
 )
+
+export interface StyledBlockProps {
+  isEmpty: boolean
+  width: number
+}
+export const StyledBlock = styled.div<StyledBlockProps>(
+  ({ isEmpty, width, theme }) => {
+    return {
+      width,
+      ...containerMargin(!isEmpty, theme),
+      [`@media (max-width: ${theme.breakpoints.columns})`]: {
+        display: isEmpty ? "none" : undefined,
+      },
+    }
+  }
+)
+
+export interface StyledFormProps {
+  width: number
+  theme: Theme
+}
+
+export const StyledForm = styled.div<StyledFormProps>(({ width, theme }) => {
+  return {
+    padding: theme.spacing.lg,
+    border: `1px solid ${theme.colors.fadedText10}`,
+    borderRadius: theme.radii.md,
+    // Wider to make the inner elements have the same size as non-form elements
+    width,
+    marginBottom: theme.spacing.lg,
+  }
+})

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { SessionInfo } from "lib/SessionInfo"
-import { Initialize } from "autogen/proto"
+import { SessionInfo } from "src/lib/SessionInfo"
+import { NewReport } from "src/autogen/proto"
 
 test("Throws an error when used before initialization", () => {
   expect(() => SessionInfo.current).toThrow()
@@ -30,6 +30,7 @@ test("Clears session info", () => {
     installationId: "iid",
     installationIdV1: "iid1",
     installationIdV2: "iid2",
+    installationIdV3: "iid3",
     authorEmail: "ae",
     maxCachedMessageAge: 2,
     commandLine: "command line",
@@ -42,13 +43,7 @@ test("Clears session info", () => {
 })
 
 test("Can be initialized from a protobuf", () => {
-  const MESSAGE = new Initialize({
-    userInfo: {
-      installationId: "installationId",
-      installationIdV1: "installationIdV1",
-      installationIdV2: "installationIdV2",
-      email: "email",
-    },
+  const MESSAGE = new NewReport({
     config: {
       sharingEnabled: false,
       gatherUsageStats: false,
@@ -56,25 +51,35 @@ test("Can be initialized from a protobuf", () => {
       mapboxToken: "mapboxToken",
       allowRunOnSave: false,
     },
-    environmentInfo: {
-      streamlitVersion: "streamlitVersion",
-      pythonVersion: "pythonVersion",
+    initialize: {
+      userInfo: {
+        installationId: "installationId",
+        installationIdV1: "installationIdV1",
+        installationIdV2: "installationIdV2",
+        installationIdV3: "installationIdV3",
+        email: "email",
+      },
+      environmentInfo: {
+        streamlitVersion: "streamlitVersion",
+        pythonVersion: "pythonVersion",
+      },
+      sessionState: {
+        runOnSave: false,
+        reportIsRunning: false,
+      },
+      sessionId: "sessionId",
+      commandLine: "commandLine",
     },
-    sessionState: {
-      runOnSave: false,
-      reportIsRunning: false,
-    },
-    sessionId: "sessionId",
-    commandLine: "commandLine",
   })
 
-  const si = SessionInfo.fromInitializeMessage(MESSAGE)
+  const si = SessionInfo.fromNewReportMessage(MESSAGE)
   expect(si.sessionId).toEqual("sessionId")
   expect(si.streamlitVersion).toEqual("streamlitVersion")
   expect(si.pythonVersion).toEqual("pythonVersion")
   expect(si.installationId).toEqual("installationId")
   expect(si.installationIdV1).toEqual("installationIdV1")
   expect(si.installationIdV2).toEqual("installationIdV2")
+  expect(si.installationIdV3).toEqual("installationIdV3")
   expect(si.authorEmail).toEqual("email")
   expect(si.maxCachedMessageAge).toEqual(31)
   expect(si.commandLine).toEqual("commandLine")

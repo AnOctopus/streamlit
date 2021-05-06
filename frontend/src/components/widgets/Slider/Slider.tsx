@@ -20,12 +20,17 @@ import { pick } from "lodash"
 import { SharedProps, Slider as UISlider } from "baseui/slider"
 import { withTheme } from "emotion-theming"
 import { sprintf } from "sprintf-js"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
-import { Slider as SliderProto } from "autogen/proto"
-import { debounce } from "lib/utils"
+import { WidgetStateManager, Source } from "src/lib/WidgetStateManager"
+import { Slider as SliderProto } from "src/autogen/proto"
+import { debounce } from "src/lib/utils"
 import moment from "moment"
-import { StyledWidgetLabel } from "components/widgets/BaseWidget"
-import { Theme } from "theme"
+import {
+  StyledWidgetLabel,
+  StyledWidgetLabelHelp,
+} from "src/components/widgets/BaseWidget"
+import TooltipIcon from "src/components/shared/TooltipIcon"
+import { Placement } from "src/components/shared/Tooltip"
+import { Theme } from "src/theme"
 import {
   StyledThumb,
   StyledThumbValue,
@@ -68,8 +73,9 @@ class Slider extends React.PureComponent<Props, State> {
   }
 
   get initialValue(): number[] {
-    const widgetId = this.props.element.id
-    const storedValue = this.props.widgetMgr.getDoubleArrayValue(widgetId)
+    const storedValue = this.props.widgetMgr.getDoubleArrayValue(
+      this.props.element
+    )
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
@@ -96,9 +102,8 @@ class Slider extends React.PureComponent<Props, State> {
   }
 
   private setWidgetValueImmediately = (source: Source): void => {
-    const widgetId = this.props.element.id
     this.props.widgetMgr.setDoubleArrayValue(
-      widgetId,
+      this.props.element,
       this.state.value,
       source
     )
@@ -227,6 +232,14 @@ class Slider extends React.PureComponent<Props, State> {
     return (
       <div ref={this.sliderRef} className="stSlider" style={style}>
         <StyledWidgetLabel>{element.label}</StyledWidgetLabel>
+        {element.help && (
+          <StyledWidgetLabelHelp>
+            <TooltipIcon
+              content={element.help}
+              placement={Placement.TOP_RIGHT}
+            />
+          </StyledWidgetLabelHelp>
+        )}
         <UISlider
           min={element.min}
           max={element.max}
@@ -243,7 +256,7 @@ class Slider extends React.PureComponent<Props, State> {
             Thumb: this.renderThumb,
             Tick: {
               style: {
-                fontFamily: fonts.mono,
+                fontFamily: fonts.monospace,
                 fontSize: fontSizes.smDefault,
               },
             },
@@ -258,7 +271,9 @@ class Slider extends React.PureComponent<Props, State> {
             InnerTrack: {
               style: ({ $disabled }: SharedProps) => ({
                 height: "4px",
-                ...($disabled ? { background: colors.lightGray } : {}),
+                ...($disabled
+                  ? { background: colors.transparentDarkenedBgMix60 }
+                  : {}),
               }),
             },
             TickBar: this.renderTickBar,

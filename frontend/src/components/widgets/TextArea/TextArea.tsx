@@ -16,12 +16,18 @@
  */
 
 import React from "react"
-import { TextArea as TextAreaProto } from "autogen/proto"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
+import { TextArea as TextAreaProto } from "src/autogen/proto"
+import { WidgetStateManager, Source } from "src/lib/WidgetStateManager"
 
 import { Textarea as UITextArea } from "baseui/textarea"
-import InputInstructions from "components/shared/InputInstructions/InputInstructions"
-import { StyledWidgetLabel } from "components/widgets/BaseWidget"
+import InputInstructions from "src/components/shared/InputInstructions/InputInstructions"
+import {
+  StyledWidgetLabel,
+  StyledWidgetLabelHelp,
+} from "src/components/widgets/BaseWidget"
+import TooltipIcon from "src/components/shared/TooltipIcon"
+import { Placement } from "src/components/shared/Tooltip"
+import { isInForm } from "src/lib/utils"
 
 export interface Props {
   disabled: boolean
@@ -52,8 +58,7 @@ class TextArea extends React.PureComponent<Props, State> {
   get initialValue(): string {
     // If WidgetStateManager knew a value for this widget, initialize to that.
     // Otherwise, use the default value from the widget protobuf.
-    const widgetId: string = this.props.element.id
-    const storedValue = this.props.widgetMgr.getStringValue(widgetId)
+    const storedValue = this.props.widgetMgr.getStringValue(this.props.element)
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
@@ -80,8 +85,11 @@ class TextArea extends React.PureComponent<Props, State> {
   }
 
   private setWidgetValue = (source: Source): void => {
-    const widgetId = this.props.element.id
-    this.props.widgetMgr.setStringValue(widgetId, this.state.value, source)
+    this.props.widgetMgr.setStringValue(
+      this.props.element,
+      this.state.value,
+      source
+    )
     this.setState({ dirty: false })
   }
 
@@ -96,12 +104,26 @@ class TextArea extends React.PureComponent<Props, State> {
     const { element } = this.props
     const { maxChars } = element
 
-    if (!maxChars || value.length <= maxChars) {
-      this.setState({
-        dirty: true,
-        value,
-      })
+    if (maxChars !== 0 && value.length > maxChars) {
+      return
     }
+
+    // If the TextArea is *not* part of a form, we mark it dirty but don't
+    // update its value in the WidgetMgr. This means that individual keypresses
+    // won't trigger a script re-run.
+    if (!isInForm(this.props.element)) {
+      this.setState({ dirty: true, value })
+      return
+    }
+
+    // If TextArea *is* part of a form, we immediately update its widgetValue
+    // on text changes. The widgetValue won't be passed to the Python
+    // script until the form is submitted, so this won't cause the report
+    // to re-run. (This also means that we won't show the "Press Enter
+    // to Apply" prompt because the TextArea will never be "dirty").
+    this.setState({ dirty: false, value }, () =>
+      this.setWidgetValue({ fromUi: true })
+    )
   }
 
   isEnterKeyPressed = (
@@ -135,6 +157,14 @@ class TextArea extends React.PureComponent<Props, State> {
     return (
       <div className="stTextArea" style={style}>
         <StyledWidgetLabel>{element.label}</StyledWidgetLabel>
+        {element.help && (
+          <StyledWidgetLabelHelp>
+            <TooltipIcon
+              content={element.help}
+              placement={Placement.TOP_RIGHT}
+            />
+          </StyledWidgetLabelHelp>
+        )}
         <UITextArea
           value={value}
           onBlur={this.onBlur}

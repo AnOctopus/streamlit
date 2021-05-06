@@ -19,8 +19,9 @@ import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.js_number import JSNumber, JSNumberBoundsException
 from streamlit.proto.NumberInput_pb2 import NumberInput as NumberInputProto
-from .utils import register_widget, NoValue
 from streamlit.session import get_session_state
+from streamlit.widgets import register_widget, NoValue
+from .form import current_form_id
 
 
 class NumberInputMixin:
@@ -83,8 +84,23 @@ class NumberInputMixin:
         if key is None:
             key = label
 
-        state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        # Ensure that all arguments are of the same type.
+        args = [min_value, max_value, value, step]
+
+        int_args = all(
+            isinstance(a, (numbers.Integral, type(None), NoValue)) for a in args
+        )
+
+        float_args = all(isinstance(a, (float, type(None), NoValue)) for a in args)
+
+        if not int_args and not float_args:
+            raise StreamlitAPIException(
+                "All numerical arguments must be of the same type."
+                f"\n`value` has {type(value).__name__} type."
+                f"\n`min_value` has {type(min_value).__name__} type."
+                f"\n`max_value` has {type(max_value).__name__} type."
+                f"\n`step` has {type(step).__name__} type."
+            )
 
         if value is None:
             # Value not passed in, try to get it from state
@@ -92,8 +108,12 @@ class NumberInputMixin:
         if value is None:
             if min_value is not None:
                 value = min_value
+            elif int_args and float_args:
+                value = 0.0  # if no values are provided, defaults to float
+            elif int_args:
+                value = 0
             else:
-                value = 0.0  # We set a float as default
+                value = 0.0
 
         state[key] = value
 
@@ -130,52 +150,8 @@ class NumberInputMixin:
                 % format
             )
 
-        # Ensure that all arguments are of the same type.
-        argsl = [min_value, max_value, step]
-
-        int_args = all(
-            map(
-                lambda a: (
-                    isinstance(a, numbers.Integral) or isinstance(a, type(None))
-                ),
-                argsl,
-            )
-        )
-        float_args = all(
-            map(lambda a: (isinstance(a, float) or isinstance(a, type(None))), argsl)
-        )
-
-        if not int_args and not float_args:
-            raise StreamlitAPIException(
-                "All arguments must be of the same type."
-                "\n`value` has %(value_type)s type."
-                "\n`min_value` has %(min_type)s type."
-                "\n`max_value` has %(max_type)s type."
-                % {
-                    "value_type": type(value).__name__,
-                    "min_type": type(min_value).__name__,
-                    "max_type": type(max_value).__name__,
-                }
-            )
-
         # Ensure that the value matches arguments' types.
         all_ints = int_value and int_args
-        all_floats = float_value and float_args
-
-        if not all_ints and not all_floats:
-            raise StreamlitAPIException(
-                "All numerical arguments must be of the same type."
-                "\n`value` has %(value_type)s type."
-                "\n`min_value` has %(min_type)s type."
-                "\n`max_value` has %(max_type)s type."
-                "\n`step` has %(step_type)s type."
-                % {
-                    "value_type": type(value).__name__,
-                    "min_type": type(min_value).__name__,
-                    "max_type": type(max_value).__name__,
-                    "step_type": type(step).__name__,
-                }
-            )
 
         if (min_value and min_value > value) or (max_value and max_value < value):
             raise StreamlitAPIException(
@@ -213,6 +189,9 @@ class NumberInputMixin:
         )
         number_input_proto.label = label
         number_input_proto.default = value
+        number_input_proto.form_id = current_form_id(self.dg)
+        if help is not None:
+            number_input_proto.help = help
 
         if min_value is not None:
             number_input_proto.min = min_value

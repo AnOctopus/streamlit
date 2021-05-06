@@ -20,6 +20,7 @@ import textwrap
 from typing import Any, Callable, Optional
 
 from streamlit.errors import DeprecationError
+from streamlit import util
 
 
 class ConfigOption(object):
@@ -143,17 +144,17 @@ class ConfigOption(object):
             # Matching text comprised of letters and numbers that begins
             # with a lowercase letter with an optional "_" preceeding it.
             # Examples: "_section", "section1"
-            "\_?[a-z][a-z0-9]*"
-            ")"
-            # Seperator between groups
-            "\."
+            r"\_?[a-z][a-zA-Z0-9]*"
+            r")"
+            # Separator between groups
+            r"\."
             # Capture a group called "name"
-            "(?P<name>"
+            r"(?P<name>"
             # Match text comprised of letters and numbers beginning with a
             # lowercase letter.
             # Examples: "name", "nameOfConfig", "config1"
-            "[a-z][a-zA-Z0-9]*"
-            ")$"
+            r"[a-z][a-zA-Z0-9]*"
+            r")$"
         )
         match = re.match(key_format, self.key)
         assert match, 'Key "%s" has invalid format.' % self.key
@@ -182,6 +183,9 @@ class ConfigOption(object):
             self.deprecation_text = textwrap.dedent(deprecation_text)
 
         self.set_value(default_val)
+
+    def __repr__(self) -> str:
+        return util.repr_(self)
 
     def __call__(self, get_val_func):
         """Assign a function to compute the value for this option.

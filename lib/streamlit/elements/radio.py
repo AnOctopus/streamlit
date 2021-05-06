@@ -18,8 +18,9 @@ import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.Radio_pb2 import Radio as RadioProto
 from streamlit.type_util import ensure_iterable
-from .utils import register_widget, NoValue
 from streamlit.session import get_session_state
+from streamlit.widgets import register_widget, NoValue
+from .form import current_form_id
 
 
 class RadioMixin:
@@ -111,6 +112,9 @@ class RadioMixin:
         radio_proto.label = label
         radio_proto.default = index
         radio_proto.options[:] = [str(format_func(option)) for option in options]
+        radio_proto.form_id = current_form_id(self.dg)
+        if help is not None:
+            radio_proto.help = help
         if force_set_value:
             radio_proto.value = index
             radio_proto.valueSet = True

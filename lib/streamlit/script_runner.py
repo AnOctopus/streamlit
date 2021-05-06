@@ -14,6 +14,7 @@
 
 import sys
 import threading
+import gc
 from contextlib import contextmanager
 from enum import Enum
 
@@ -22,13 +23,16 @@ from blinker import Signal
 from streamlit import config
 from streamlit import magic
 from streamlit import source_util
+from streamlit import util
+from streamlit.error_util import handle_uncaught_app_exception
 from streamlit.media_file_manager import media_file_manager
-from streamlit.report_thread import ReportThread
+from streamlit.report_thread import ReportThread, ReportContext
 from streamlit.report_thread import get_report_ctx
 from streamlit.script_request_queue import ScriptRequest
 from streamlit.session import get_session_state
 from streamlit.logger import get_logger
 from streamlit.proto.ClientState_pb2 import ClientState
+from streamlit.widgets import WidgetStateManager
 
 LOGGER = get_logger(__name__)
 
@@ -122,6 +126,9 @@ class ScriptRunner(object):
 
         # This is initialized in start()
         self._script_thread = None
+
+    def __repr__(self) -> str:
+        return util.repr_(self)
 
     def start(self):
         """Start a new thread to process the ScriptEventQueue.
@@ -369,20 +376,10 @@ class ScriptRunner(object):
             pass
 
         except BaseException as e:
-            # Show exceptions in the Streamlit report.
-            LOGGER.debug(e)
-            import streamlit as st
-
-            st.exception(e)  # This is OK because we're in the script thread.
-            # TODO: Clean up the stack trace, so it doesn't include
-            # ScriptRunner.
+            handle_uncaught_app_exception(e)
 
         finally:
-            self._widgets.reset_triggers()
-            self.on_event.send(ScriptRunnerEvent.SCRIPT_STOPPED_WITH_SUCCESS)
-            # delete expired files now that the script has run and files in use
-            # are marked as active
-            media_file_manager.del_expired_files()
+            self._on_script_finished(ctx)
 
         # Use _log_if_error() to make sure we never ever ever stop running the
         # script without meaning to.
@@ -390,6 +387,26 @@ class ScriptRunner(object):
 
         if rerun_with_data is not None:
             self._run_script(rerun_with_data)
+
+    def _on_script_finished(self, ctx: ReportContext) -> None:
+        """Called when our script finishes executing, even if it finished
+        early with an exception. We perform post-run cleanup here.
+        """
+        self._widgets.reset_triggers()
+        self._widgets.cull_nonexistent(ctx.widget_ids_this_run.items())
+        # Signal that the script has finished. (We use SCRIPT_STOPPED_WITH_SUCCESS
+        # even if we were stopped with an exception.)
+        self.on_event.send(ScriptRunnerEvent.SCRIPT_STOPPED_WITH_SUCCESS)
+        # Delete expired files now that the script has run and files in use
+        # are marked as active.
+        media_file_manager.del_expired_files()
+
+        # Force garbage collection to run, to help avoid memory use building up
+        # This is usually not an issue, but sometimes GC takes time to kick in and
+        # causes apps to go over resource limits, and forcing it to run between
+        # script runs is low cost, since we aren't doing much work anyway.
+        if config.get_option("runner.postScriptGC"):
+            gc.collect(2)
 
 
 class ScriptControlException(BaseException):
@@ -416,6 +433,9 @@ class RerunException(ScriptControlException):
             The RerunData that should be used to rerun the report
         """
         self.rerun_data = rerun_data
+
+    def __repr__(self) -> str:
+        return util.repr_(self)
 
 
 def _clean_problem_modules():
@@ -452,6 +472,9 @@ class modified_sys_path(object):
     def __init__(self, report):
         self._report = report
         self._added_path = False
+
+    def __repr__(self) -> str:
+        return util.repr_(self)
 
     def __enter__(self):
         if self._report.script_path not in sys.path:

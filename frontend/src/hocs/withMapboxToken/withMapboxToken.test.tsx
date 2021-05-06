@@ -16,8 +16,8 @@
  */
 
 import React from "react"
-import { shallow } from "lib/test_util"
-import { SessionInfo } from "lib/SessionInfo"
+import { shallow } from "src/lib/test_util"
+import { SessionInfo } from "src/lib/SessionInfo"
 import { MapboxToken } from "./MapboxToken"
 
 import withMapboxToken from "./withMapboxToken"
@@ -51,6 +51,7 @@ describe("withMapboxToken", () => {
       installationId: "iid",
       installationIdV1: "iid1",
       installationIdV2: "iid2",
+      installationIdV3: "iid3",
       authorEmail: "ae",
       maxCachedMessageAge: 2,
       commandLine,

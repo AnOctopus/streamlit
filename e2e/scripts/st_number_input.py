@@ -24,6 +24,12 @@ st.write('value 2: "', i2, '"')
 i3 = st.number_input("number input 3", 1, 10)
 st.write('value 3: "', i3, '"')
 
+i4 = st.number_input("number input 4", step=2)
+st.write('value 4: "', i4, '"')
+
+i5 = st.number_input("number input 5", max_value=10)
+st.write('value 5: "', i5, '"')
+
 # st.session_state() can only run in streamlit
 if st._is_running_with_streamlit:
     state = st.beta_session_state(number_input_changed=False)
@@ -31,6 +37,6 @@ if st._is_running_with_streamlit:
     def change_handler(new_number):
         state.number_input_changed = True
 
-    i4 = st.number_input("number input 4", 1, 10, on_change=change_handler)
-    st.write('value 4: "', i4, '"')
+    i6 = st.number_input("number input 4", 1, 10, on_change=change_handler)
+    st.write('value 6: "', i6, '"')
     st.write("Number Input Changed:", state.number_input_changed)

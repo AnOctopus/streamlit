@@ -19,13 +19,13 @@ import React from "react"
 import { Slider as UISlider } from "baseui/slider"
 import TimezoneMock from "timezone-mock"
 
-import { Slider as SliderProto } from "autogen/proto"
-import { mount } from "lib/test_util"
-import { WidgetStateManager } from "lib/WidgetStateManager"
-import { mainTheme } from "theme"
+import { Slider as SliderProto } from "src/autogen/proto"
+import { mount } from "src/lib/test_util"
+import { WidgetStateManager } from "src/lib/WidgetStateManager"
+import { lightTheme } from "src/theme"
 import Slider, { Props } from "./Slider"
 
-jest.mock("lib/WidgetStateManager")
+jest.mock("src/lib/WidgetStateManager")
 
 const sendBackMsg = jest.fn()
 const getProps = (elementProps: Partial<SliderProto> = {}): Props => ({
@@ -43,7 +43,7 @@ const getProps = (elementProps: Partial<SliderProto> = {}): Props => ({
   width: 0,
   disabled: false,
   widgetMgr: new WidgetStateManager(sendBackMsg),
-  theme: mainTheme,
+  theme: lightTheme.emotion,
 })
 
 describe("Slider widget", () => {
@@ -70,11 +70,9 @@ describe("Slider widget", () => {
     jest.runAllTimers()
     wrapper.update()
 
-    expect(props.widgetMgr.setDoubleArrayValue).toHaveBeenCalledWith(
-      props.element.id,
-      [5],
-      { fromUi: false }
-    )
+    expect(
+      props.widgetMgr.setDoubleArrayValue
+    ).toHaveBeenCalledWith(props.element, [5], { fromUi: false })
 
     wrapper.unmount()
   })
@@ -131,11 +129,9 @@ describe("Slider widget", () => {
       jest.runAllTimers()
       wrapper.update()
 
-      expect(props.widgetMgr.setDoubleArrayValue).toHaveBeenCalledWith(
-        props.element.id,
-        [10],
-        { fromUi: true }
-      )
+      expect(
+        props.widgetMgr.setDoubleArrayValue
+      ).toHaveBeenCalledWith(props.element, [10], { fromUi: true })
 
       expect(wrapper.find(UISlider).prop("value")).toStrictEqual([10])
     })
@@ -249,7 +245,7 @@ describe("Slider widget", () => {
       wrapper.update()
 
       expect(props.widgetMgr.setDoubleArrayValue).toHaveBeenCalledWith(
-        props.element.id,
+        props.element,
         [1, 10],
         {
           fromUi: true,

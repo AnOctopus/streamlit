@@ -16,14 +16,14 @@
  */
 
 import React from "react"
-import { mount } from "lib/test_util"
-import { WidgetStateManager } from "lib/WidgetStateManager"
+import { mount } from "src/lib/test_util"
+import { WidgetStateManager } from "src/lib/WidgetStateManager"
 
 import { Radio as UIRadio, RadioGroup } from "baseui/radio"
-import { Radio as RadioProto } from "autogen/proto"
+import { Radio as RadioProto } from "src/autogen/proto"
 import Radio, { Props } from "./Radio"
 
-jest.mock("lib/WidgetStateManager")
+jest.mock("src/lib/WidgetStateManager")
 
 const sendBackMsg = jest.fn()
 
@@ -51,7 +51,7 @@ describe("Radio widget", () => {
 
   it("should set widget value on did mount", () => {
     expect(props.widgetMgr.setIntValue).toHaveBeenCalledWith(
-      props.element.id,
+      props.element,
       props.element.default,
       { fromUi: false }
     )
@@ -117,7 +117,7 @@ describe("Radio widget", () => {
 
     expect(wrapper.find(RadioGroup).prop("value")).toBe("1")
     expect(props.widgetMgr.setIntValue).toHaveBeenCalledWith(
-      props.element.id,
+      props.element,
       1,
       { fromUi: true }
     )

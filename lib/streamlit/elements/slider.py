@@ -34,9 +34,9 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.js_number import JSNumber
 from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
-from .utils import register_widget
 from streamlit.session import get_session_state
-
+from streamlit.widgets import register_widget
+from .form import current_form_id
 
 T = TypeVar("T", int, float, date, time, datetime)
 
@@ -408,6 +408,9 @@ class SliderMixin:
         slider_proto.step = step
         slider_proto.data_type = data_type
         slider_proto.options[:] = []
+        slider_proto.form_id = current_form_id(self.dg)
+        if help is not None:
+            slider_proto.help = help
         if force_set_value:
             slider_proto.value[:] = value
             slider_proto.valueSet = True

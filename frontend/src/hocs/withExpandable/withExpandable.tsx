@@ -17,9 +17,13 @@
 
 import React, { ComponentType, ReactElement, useEffect, useState } from "react"
 import classNames from "classnames"
-import { StatelessAccordion as Accordion, Panel } from "baseui/accordion"
+import {
+  StatelessAccordion as Accordion,
+  Panel,
+  SharedProps,
+} from "baseui/accordion"
 import { useTheme } from "emotion-theming"
-import { Theme } from "theme"
+import { Theme } from "src/theme"
 import { StyledExpandableContainer } from "./styled-components"
 
 export interface Props {
@@ -50,7 +54,7 @@ function withExpandable(
     }, [initialExpanded])
 
     const toggle = (): void => toggleExpanded(!expanded)
-    const { colors, fontWeights, spacing } = useTheme<Theme>()
+    const { colors, spacing, fontSizes } = useTheme<Theme>()
 
     return (
       <StyledExpandableContainer>
@@ -60,22 +64,21 @@ function withExpandable(
           disabled={widgetsDisabled}
           overrides={{
             Content: {
-              style: ({ $expanded }) => ({
+              style: ({ $expanded }: SharedProps) => ({
                 backgroundColor: colors.transparent,
-                borderTopStyle: "none",
-                borderBottomStyle: "solid",
-                borderBottomColor: $expanded
-                  ? colors.lightGray
-                  : colors.transparent,
                 marginLeft: spacing.none,
                 marginRight: spacing.none,
                 marginTop: spacing.none,
                 marginBottom: spacing.none,
                 overflow: "visible",
-                paddingLeft: spacing.none,
-                paddingRight: spacing.none,
-                paddingTop: $expanded ? "1em" : 0,
-                paddingBottom: spacing.none,
+                paddingLeft: spacing.lg,
+                paddingRight: spacing.lg,
+                paddingTop: 0,
+                paddingBottom: $expanded ? spacing.lg : 0,
+                borderTopStyle: "none",
+                borderBottomStyle: "none",
+                borderRightStyle: "none",
+                borderLeftStyle: "none",
               }),
               props: { className: "streamlit-expanderContent" },
             },
@@ -92,39 +95,42 @@ function withExpandable(
               }),
             },
             Header: {
-              style: ({ $disabled }) => ({
+              style: ({ $disabled }: SharedProps) => ({
                 marginBottom: spacing.none,
                 marginLeft: spacing.none,
                 marginRight: spacing.none,
                 marginTop: spacing.none,
-                paddingLeft: spacing.none,
                 backgroundColor: colors.transparent,
-                borderBottomColor: colors.lightGray,
-                color: $disabled ? colors.disabled : colors.black,
+                color: $disabled ? colors.disabled : colors.bodyText,
+                fontSize: fontSizes.smDefault,
                 borderTopStyle: "none",
-                paddingBottom: "0.5em",
-                paddingRight: spacing.none,
-                paddingTop: "0.5em",
-                fontWeight: fontWeights.medium,
-                ":hover": {
-                  borderBottomColor: colors.primary,
-                },
+                borderBottomStyle: "none",
+                borderRightStyle: "none",
+                borderLeftStyle: "none",
+                paddingBottom: spacing.md,
+                paddingTop: spacing.md,
+                paddingRight: spacing.lg,
+                paddingLeft: spacing.lg,
               }),
               props: {
-                className: classNames("streamlit-expanderHeader", {
-                  "stale-element": isStale,
-                }),
+                className: "streamlit-expanderHeader",
+                isStale,
               },
             },
             ToggleIcon: {
-              style: ({ $disabled }) => ({
-                marginRight: spacing.sm,
-                color: $disabled ? colors.disabled : colors.black,
+              style: ({ $disabled }: SharedProps) => ({
+                color: $disabled ? colors.disabled : colors.bodyText,
               }),
             },
             Root: {
               props: {
                 className: classNames("streamlit-expander", { empty }),
+              },
+              style: {
+                borderStyle: "solid",
+                borderWidth: "1px",
+                borderColor: colors.fadedText10,
+                marginBottom: spacing.lg,
               },
             },
           }}

@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+import pandas as pd
+
 import streamlit as st
 
 w1 = st.select_slider(
@@ -21,18 +24,27 @@ w1 = st.select_slider(
 )
 st.write("Value 1:", w1)
 
-# st.session_state() can only run in streamlit
-if st._is_running_with_streamlit:
-    state = st.beta_session_state(slider_changed=False)
+w2 = st.select_slider(
+    "Label 2",
+    options=np.array([1, 2, 3, 4, 5]),
+)
+st.write("Value 2:", w2)
 
-    def slider_change(new_value):
-        state.slider_changed = True
+w3 = st.select_slider(
+    "Label 3",
+    value=[2, 5],
+    options=pd.Series([1, 2, 3, 4, 5, 6, 7, 8, 9]),
+)
+st.write("Value 3:", w3)
 
-    w2 = st.select_slider(
-        "Label 2",
-        value=("orange", "blue"),
-        options=["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
-        on_change=slider_change,
-    )
-    st.write("Value 2:", w2)
-    st.write("Slider Changed:", state.slider_changed)
+w4 = st.select_slider(
+    "Label 4",
+    value=5,
+    options=pd.DataFrame(
+        {
+            "first column": [1, 2, 3, 4, 5],
+            "second column": [10, 20, 30, 40, 50],
+        }
+    ),
+)
+st.write("Value 4:", w4)

@@ -24,13 +24,19 @@ st.write("value 2:", i2)
 i3 = st.selectbox("selectbox 3", [])
 st.write("value 3:", i3)
 
-# st.session_state() can only run in streamlit
-if st._is_running_with_streamlit:
-    state = st.beta_session_state(selectbox_changed=False)
-
-    def change_handler(new_text):
-        state.selectbox_changed = True
-
-    i4 = st.selectbox("change test", options, on_change=change_handler)
-    st.write("value 4:", i4)
-    st.write("Selectbox Changed:", state.selectbox_changed)
+more_options = [
+    "e2e/scripts/components_iframe.py",
+    "e2e/scripts/st_warning.py",
+    "e2e/scripts/st_container.py",
+    "e2e/scripts/st_dataframe_sort_column.py",
+    "e2e/scripts/app_hotkeys.py",
+    "e2e/scripts/st_info.py",
+    "e2e/scripts/st_echo.py",
+    "e2e/scripts/st_json.py",
+    "e2e/scripts/st_experimental_get_query_params.py",
+    "e2e/scripts/st_markdown.py",
+    "e2e/scripts/st_color_picker.py",
+    "e2e/scripts/st_expander.py",
+]
+i4 = st.selectbox("selectbox 4", more_options, 0)
+st.write("value 4:", i4)

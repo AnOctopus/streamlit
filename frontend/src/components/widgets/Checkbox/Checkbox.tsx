@@ -18,18 +18,26 @@
 import React from "react"
 import { withTheme } from "emotion-theming"
 import { Checkbox as UICheckbox } from "baseui/checkbox"
-import { Checkbox as CheckboxProto } from "autogen/proto"
+import { Checkbox as CheckboxProto } from "src/autogen/proto"
 import { transparentize } from "color2k"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
-import { Theme } from "theme"
+import { WidgetStateManager, Source } from "src/lib/WidgetStateManager"
+import { Theme } from "src/theme"
+import TooltipIcon from "src/components/shared/TooltipIcon"
+import { Placement } from "src/components/shared/Tooltip"
+import { StyledWidgetLabelHelpInline } from "src/components/widgets/BaseWidget"
 
-export interface Props {
+export interface OwnProps {
   disabled: boolean
   element: CheckboxProto
-  theme: Theme
   widgetMgr: WidgetStateManager
   width: number
 }
+
+interface ThemeProps {
+  theme: Theme
+}
+
+export type Props = OwnProps & ThemeProps
 
 interface State {
   /**
@@ -47,8 +55,7 @@ class Checkbox extends React.PureComponent<Props, State> {
   get initialValue(): boolean {
     // If WidgetStateManager knew a value for this widget, initialize to that.
     // Otherwise, use the default value from the widget protobuf.
-    const widgetId = this.props.element.id
-    const storedValue = this.props.widgetMgr.getBoolValue(widgetId)
+    const storedValue = this.props.widgetMgr.getBoolValue(this.props.element)
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
@@ -75,8 +82,11 @@ class Checkbox extends React.PureComponent<Props, State> {
   }
 
   private setWidgetValue = (source: Source): void => {
-    const widgetId = this.props.element.id
-    this.props.widgetMgr.setBoolValue(widgetId, this.state.value, source)
+    this.props.widgetMgr.setBoolValue(
+      this.props.element,
+      this.state.value,
+      source
+    )
   }
 
   private onChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -85,7 +95,7 @@ class Checkbox extends React.PureComponent<Props, State> {
   }
 
   public render = (): React.ReactNode => {
-    const { theme, width } = this.props
+    const { theme, width, element, disabled } = this.props
     const { colors, fontSizes, radii } = theme
     const style = { width }
 
@@ -94,7 +104,7 @@ class Checkbox extends React.PureComponent<Props, State> {
       <div className="row-widget stCheckbox" style={style}>
         <UICheckbox
           checked={this.state.value}
-          disabled={this.props.disabled}
+          disabled={disabled}
           onChange={this.onChange}
           overrides={{
             Root: {
@@ -102,7 +112,9 @@ class Checkbox extends React.PureComponent<Props, State> {
                 marginBottom: 0,
                 marginTop: 0,
                 paddingRight: fontSizes.twoThirdSmDefault,
-                backgroundColor: $isFocused ? colors.lightestGray : "",
+                backgroundColor: $isFocused
+                  ? colors.transparentDarkenedBgMix60
+                  : "",
                 borderTopLeftRadius: radii.md,
                 borderTopRightRadius: radii.md,
                 borderBottomLeftRadius: radii.md,
@@ -116,17 +128,30 @@ class Checkbox extends React.PureComponent<Props, State> {
               }: {
                 $isFocusVisible: boolean
                 $checked: boolean
-              }) => ({
-                borderLeftWidth: "2px",
-                borderRightWidth: "2px",
-                borderTopWidth: "2px",
-                borderBottomWidth: "2px",
-                outline: 0,
-                boxShadow:
-                  $isFocusVisible && $checked
-                    ? `0 0 0 0.2rem ${transparentize(colors.primary, 0.5)}`
-                    : "",
-              }),
+              }) => {
+                const borderColor =
+                  $checked && !disabled ? colors.primary : colors.fadedText40
+
+                return {
+                  outline: 0,
+                  boxShadow:
+                    $isFocusVisible && $checked
+                      ? `0 0 0 0.2rem ${transparentize(colors.primary, 0.5)}`
+                      : "",
+                  // This is painfully verbose, but baseweb seems to internally
+                  // use the long-hand version, which means we can't use the
+                  // shorthand names here as if we do we'll end up with warn
+                  // logs spamming us every time a checkbox is rendered.
+                  borderLeftWidth: "2px",
+                  borderRightWidth: "2px",
+                  borderTopWidth: "2px",
+                  borderBottomWidth: "2px",
+                  borderLeftColor: borderColor,
+                  borderRightColor: borderColor,
+                  borderTopColor: borderColor,
+                  borderBottomColor: borderColor,
+                }
+              },
             },
             Label: {
               style: {
@@ -135,7 +160,15 @@ class Checkbox extends React.PureComponent<Props, State> {
             },
           }}
         >
-          {this.props.element.label}
+          {element.label}
+          {element.help && (
+            <StyledWidgetLabelHelpInline>
+              <TooltipIcon
+                content={element.help}
+                placement={Placement.TOP_RIGHT}
+              />
+            </StyledWidgetLabelHelpInline>
+          )}
         </UICheckbox>
       </div>
     )

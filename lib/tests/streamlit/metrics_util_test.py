@@ -43,7 +43,8 @@ class MetricsUtilTest(unittest.TestCase):
             "streamlit.metrics_util.os.path.isfile"
         ) as path_isfile:
 
-            path_isfile = lambda path: path == "/etc/machine-id"
+            def path_isfile(path):
+                return path == "/etc/machine-id"
 
             machine_id = metrics_util._get_machine_id()
         self.assertEqual(machine_id, file_data)
@@ -60,7 +61,8 @@ class MetricsUtilTest(unittest.TestCase):
             "streamlit.metrics_util.os.path.isfile"
         ) as path_isfile:
 
-            path_isfile = lambda path: path == "/var/lib/dbus/machine-id"
+            def path_isfile(path):
+                return path == "/var/lib/dbus/machine-id"
 
             machine_id = metrics_util._get_machine_id()
         self.assertEqual(machine_id, file_data)
@@ -87,7 +89,8 @@ class MetricsUtilTest(unittest.TestCase):
             "streamlit.metrics_util.os.path.isfile"
         ) as path_isfile:
 
-            path_isfile = lambda path: path == "/etc/machine-id"
+            def path_isfile(path):
+                return path == "/etc/machine-id"
 
             machine_id = metrics_util._get_machine_id_v3()
         self.assertEqual(machine_id, file_data)
@@ -104,7 +107,8 @@ class MetricsUtilTest(unittest.TestCase):
             "streamlit.metrics_util.os.path.isfile"
         ) as path_isfile:
 
-            path_isfile = lambda path: path == "/var/lib/dbus/machine-id"
+            def path_isfile(path):
+                return path == "/var/lib/dbus/machine-id"
 
             machine_id = metrics_util._get_machine_id_v3()
         self.assertEqual(machine_id, file_data)

@@ -15,19 +15,26 @@
 import os
 import signal
 import sys
+from typing import Any, Dict
 
 import click
 import tornado.ioloop
 from streamlit.git_util import GitRepo, MIN_GIT_VERSION
 
+from streamlit import version
 from streamlit import config
 from streamlit import net_util
 from streamlit import url_util
 from streamlit import env_util
+from streamlit import secrets
 from streamlit import util
-from streamlit.report import Report
+from streamlit.config import CONFIG_FILENAMES
 from streamlit.logger import get_logger
+from streamlit.report import Report
+from streamlit.secrets import SECRETS_FILE_LOC
 from streamlit.server.server import Server, server_address_is_unix_socket
+from streamlit.watcher.file_watcher import watch_file
+from streamlit.watcher.file_watcher import report_watchdog_availability
 
 LOGGER = get_logger(__name__)
 
@@ -35,6 +42,21 @@ LOGGER = get_logger(__name__)
 # reconnect.
 # This must be >= 2 * WebSocketConnection.ts#RECONNECT_WAIT_TIME_MS.
 BROWSER_WAIT_TIMEOUT_SEC = 1
+
+NEW_VERSION_TEXT = """
+  %(new_version)s
+
+  See what's new at https://discuss.streamlit.io/c/announcements
+
+  Enter the following command to upgrade:
+  %(prompt)s %(command)s
+""" % {
+    "new_version": click.style(
+        "A new version of Streamlit is available.", fg="blue", bold=True
+    ),
+    "prompt": click.style("$", fg="blue"),
+    "command": click.style("pip install streamlit --upgrade", bold=True),
+}
 
 
 def _set_up_signal_handler():
@@ -135,6 +157,16 @@ def _fix_sys_argv(script_path, args):
 def _on_server_start(server):
     _maybe_print_old_git_warning(server.script_path)
     _print_url(server.is_running_hello)
+    report_watchdog_availability()
+    _print_new_version_message()
+
+    # Load secrets.toml if it exists. If the file doesn't exist, this
+    # function will return without raising an exception. We catch any parse
+    # errors and display them here.
+    try:
+        secrets.load_if_toml_exists()
+    except BaseException as e:
+        LOGGER.error(f"Failed to load {SECRETS_FILE_LOC}", exc_info=e)
 
     def maybe_open_browser():
         if config.get_option("server.headless"):
@@ -169,6 +201,11 @@ def _fix_pydeck_mapbox_api_warning():
     """Sets MAPBOX_API_KEY environment variable needed for PyDeck otherwise it will throw an exception"""
 
     os.environ["MAPBOX_API_KEY"] = config.get_option("mapbox.token")
+
+
+def _print_new_version_message():
+    if version.should_show_new_version_notice():
+        click.secho(NEW_VERSION_TEXT)
 
 
 def _print_url(is_running_hello):
@@ -225,6 +262,7 @@ def _print_url(is_running_hello):
         click.secho("")
         click.secho("  May you create awesome apps!")
         click.secho("")
+        click.secho("")
 
 
 def _maybe_print_old_git_warning(script_path: str) -> None:
@@ -254,7 +292,42 @@ def _maybe_print_old_git_warning(script_path: str) -> None:
         click.secho("  To enable this feature, please update Git.", fg="yellow")
 
 
-def run(script_path, command_line, args):
+def load_config_options(flag_options: Dict[str, Any]):
+    """Load config options from config.toml files, then overlay the ones set by
+    flag_options.
+
+    The "streamlit run" command supports passing Streamlit's config options
+    as flags. This function reads through the config options set via flag,
+    massages them, and passes them to get_config_options() so that they
+    overwrite config option defaults and those loaded from config.toml files.
+
+    Parameters
+    ----------
+    flag_options : Dict[str, Any]
+        A dict of config options where the keys are the CLI flag version of the
+        config option names.
+    """
+    options_from_flags = {
+        name.replace("_", "."): val
+        for name, val in flag_options.items()
+        if val is not None
+    }
+
+    # Force a reparse of config files (if they exist). The result is cached
+    # for future calls.
+    config.get_config_options(force_reparse=True, options_from_flags=options_from_flags)
+
+
+def _install_config_watchers(flag_options: Dict[str, Any]):
+    def on_config_changed(_path):
+        load_config_options(flag_options)
+
+    for filename in CONFIG_FILENAMES:
+        if os.path.exists(filename):
+            watch_file(filename, on_config_changed)
+
+
+def run(script_path, command_line, args, flag_options):
     """Run a script in a separate thread and start a server for the app.
 
     This starts a blocking ioloop.
@@ -264,13 +337,14 @@ def run(script_path, command_line, args):
     script_path : str
     command_line : str
     args : [str]
-
+    flag_options : Dict[str, Any]
     """
     _fix_sys_path(script_path)
     _fix_matplotlib_crash()
     _fix_tornado_crash()
     _fix_sys_argv(script_path, args)
     _fix_pydeck_mapbox_api_warning()
+    _install_config_watchers(flag_options)
 
     # Install a signal handler that will shut down the ioloop
     # and close all our threads

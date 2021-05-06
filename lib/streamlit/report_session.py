@@ -20,25 +20,30 @@ from typing import Optional, TYPE_CHECKING
 import tornado.gen
 import tornado.ioloop
 
+import streamlit.elements.exception as exception
 from streamlit import __version__
 from streamlit import caching
 from streamlit import config
 from streamlit import url_util
+from streamlit import util
+from streamlit.case_converters import to_snake_case
+from streamlit.credentials import Credentials
+from streamlit.logger import get_logger
 from streamlit.media_file_manager import media_file_manager
 from streamlit.metrics_util import Installation
+from streamlit.proto.ClientState_pb2 import ClientState
+from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
+from streamlit.proto.GitInfo_pb2 import GitInfo
+from streamlit.proto.NewReport_pb2 import Config, CustomThemeConfig, UserInfo
 from streamlit.report import Report
 from streamlit.script_request_queue import RerunData
 from streamlit.script_request_queue import ScriptRequest
 from streamlit.script_request_queue import ScriptRequestQueue
 from streamlit.script_runner import ScriptRunner
 from streamlit.script_runner import ScriptRunnerEvent
-from streamlit.uploaded_file_manager import UploadedFileManager
-from streamlit.credentials import Credentials
-from streamlit.logger import get_logger
-from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
-from streamlit.proto.ClientState_pb2 import ClientState
 from streamlit.server.server_util import serialize_forward_msg
 from streamlit.storage.file_storage import FileStorage
+from streamlit.uploaded_file_manager import UploadedFileManager
 from streamlit.watcher.local_sources_watcher import LocalSourcesWatcher
 from streamlit.widgets import WidgetStateManager
 import streamlit.elements.exception as exception
@@ -63,6 +68,7 @@ class ReportSession(object):
     and widget state.
 
     A ReportSession is attached to each thread involved in running its Report.
+
     """
 
     def __init__(self, ioloop, script_path, command_line, uploaded_file_manager):
@@ -98,6 +104,9 @@ class ReportSession(object):
 
         self._local_sources_watcher = LocalSourcesWatcher(
             self._report, self._on_source_file_changed
+        )
+        self._stop_config_listener = config.on_config_parsed(
+            self._on_source_file_changed, force_connect=True
         )
         self._storage = None
         self._maybe_reuse_previous_run = False
@@ -153,6 +162,7 @@ class ReportSession(object):
 
             self._state = ReportSessionState.SHUTDOWN_REQUESTED
             self._local_sources_watcher.close()
+            self._stop_config_listener()
 
     def enqueue(self, msg):
         """Enqueue a new ForwardMsg to our browser queue.
@@ -366,50 +376,25 @@ class ReportSession(object):
         msg.session_event.report_changed_on_disk = True
         self.enqueue(msg)
 
-    def get_deploy_params(self):
-        try:
-            from streamlit.git_util import GitRepo
-
-            self._repo = GitRepo(self._report.script_path)
-            return self._repo.get_repo_info()
-        except:
-            # Issues can arise based on the git structure
-            # (e.g. if branch is in DETACHED HEAD state,
-            # git is not installed, etc)
-            # In this case, catch any errors
-            return None
-
     def _enqueue_new_report_message(self):
         self._report.generate_new_id()
+
         msg = ForwardMsg()
+
         msg.new_report.report_id = self._report.report_id
         msg.new_report.name = self._report.name
         msg.new_report.script_path = self._report.script_path
 
-        # git deploy params
-        deploy_params = self.get_deploy_params()
-        if deploy_params is not None:
-            repo, branch, module = deploy_params
-            msg.new_report.deploy_params.repository = repo
-            msg.new_report.deploy_params.branch = branch
-            msg.new_report.deploy_params.module = module
+        _populate_config_msg(msg.new_report.config)
+        _populate_theme_msg(msg.new_report.custom_theme)
 
         # Immutable session data. We send this every time a new report is
         # started, to avoid having to track whether the client has already
         # received it. It does not change from run to run; it's up to the
         # to perform one-time initialization only once.
         imsg = msg.new_report.initialize
-        imsg.config.sharing_enabled = config.get_option("global.sharingMode") != "off"
 
-        imsg.config.gather_usage_stats = config.get_option("browser.gatherUsageStats")
-
-        imsg.config.max_cached_message_age = config.get_option(
-            "global.maxCachedMessageAge"
-        )
-
-        imsg.config.mapbox_token = config.get_option("mapbox.token")
-
-        imsg.config.allow_run_on_save = config.get_option("server.allowRunOnSave")
+        _populate_user_info_msg(imsg.user_info)
 
         imsg.environment_info.streamlit_version = __version__
         imsg.environment_info.python_version = ".".join(map(str, sys.version_info))
@@ -418,15 +403,6 @@ class ReportSession(object):
         imsg.session_state.report_is_running = (
             self._state == ReportSessionState.REPORT_IS_RUNNING
         )
-
-        imsg.user_info.installation_id = Installation.instance().installation_id
-        imsg.user_info.installation_id_v1 = Installation.instance().installation_id_v1
-        imsg.user_info.installation_id_v2 = Installation.instance().installation_id_v2
-        imsg.user_info.installation_id_v3 = Installation.instance().installation_id_v3
-        if Credentials.get_current().activation:
-            imsg.user_info.email = Credentials.get_current().activation.email
-        else:
-            imsg.user_info.email = ""
 
         imsg.command_line = self._report.command_line
         imsg.session_id = self.id
@@ -445,6 +421,40 @@ class ReportSession(object):
         msg.report_finished = status
         self.enqueue(msg)
 
+    def handle_git_information_request(self):
+        msg = ForwardMsg()
+
+        try:
+            from streamlit.git_util import GitRepo
+
+            repo = GitRepo(self._report.script_path)
+
+            repo_info = repo.get_repo_info()
+            if repo_info is None:
+                return
+
+            repository_name, branch, module = repo_info
+
+            msg.git_info_changed.repository = repository_name
+            msg.git_info_changed.branch = branch
+            msg.git_info_changed.module = module
+
+            msg.git_info_changed.untracked_files[:] = repo.untracked_files
+            msg.git_info_changed.uncommitted_files[:] = repo.uncommitted_files
+
+            if repo.is_head_detached:
+                msg.git_info_changed.state = GitInfo.GitStates.HEAD_DETACHED
+            elif len(repo.ahead_commits) > 0:
+                msg.git_info_changed.state = GitInfo.GitStates.AHEAD_OF_REMOTE
+            else:
+                msg.git_info_changed.state = GitInfo.GitStates.DEFAULT
+
+            self.enqueue(msg)
+        except Exception as e:
+            # Users may never even install Git in the first place, so this
+            # error requires no action. It can be useful for debugging.
+            LOGGER.debug("Obtaining Git information produced an error", exc_info=e)
+
     def handle_rerun_script_request(self, client_state=None, is_preheat=False):
         """Tell the ScriptRunner to re-run its report.
 
@@ -453,6 +463,7 @@ class ReportSession(object):
         client_state : streamlit.proto.ClientState_pb2.ClientState | None
             The ClientState protobuf to run the script with, or None
             to use previous client state.
+
         is_preheat: boolean
             True if this ReportSession should run the script immediately, and
             then ignore the next rerun request if it matches the already-ran
@@ -646,3 +657,69 @@ class ReportSession(object):
             else:
                 raise RuntimeError("Unsupported sharing mode '%s'" % sharing_mode)
         return self._storage
+
+
+def _populate_config_msg(msg: Config) -> None:
+    msg.sharing_enabled = config.get_option("global.sharingMode") != "off"
+    msg.gather_usage_stats = config.get_option("browser.gatherUsageStats")
+    msg.max_cached_message_age = config.get_option("global.maxCachedMessageAge")
+    msg.mapbox_token = config.get_option("mapbox.token")
+    msg.allow_run_on_save = config.get_option("server.allowRunOnSave")
+
+
+def _populate_theme_msg(msg: CustomThemeConfig) -> None:
+    enum_encoded_options = {"base", "font"}
+    theme_opts = config.get_options_for_section("theme")
+
+    if not any(theme_opts.values()):
+        return
+
+    for option_name, option_val in theme_opts.items():
+        if option_name not in enum_encoded_options and option_val is not None:
+            setattr(msg, to_snake_case(option_name), option_val)
+
+    # NOTE: If unset, base and font will default to the protobuf enum zero
+    # values, which are BaseTheme.LIGHT and FontFamily.SANS_SERIF,
+    # respectively. This is why we both don't handle the cases explicitly and
+    # also only log a warning when receiving invalid base/font options.
+    base_map = {
+        "light": msg.BaseTheme.LIGHT,
+        "dark": msg.BaseTheme.DARK,
+    }
+    base = theme_opts["base"]
+    if base is not None:
+        if base not in base_map:
+            LOGGER.warning(
+                f'"{base}" is an invalid value for theme.base.'
+                f" Allowed values include {list(base_map.keys())}."
+                ' Setting theme.base to "light".'
+            )
+        else:
+            msg.base = base_map[base]
+
+    font_map = {
+        "sans serif": msg.FontFamily.SANS_SERIF,
+        "serif": msg.FontFamily.SERIF,
+        "monospace": msg.FontFamily.MONOSPACE,
+    }
+    font = theme_opts["font"]
+    if font is not None:
+        if font not in font_map:
+            LOGGER.warning(
+                f'"{font}" is an invalid value for theme.font.'
+                f" Allowed values include {list(font_map.keys())}."
+                ' Setting theme.font to "sans serif".'
+            )
+        else:
+            msg.font = font_map[font]
+
+
+def _populate_user_info_msg(msg: UserInfo) -> None:
+    msg.installation_id = Installation.instance().installation_id
+    msg.installation_id_v1 = Installation.instance().installation_id_v1
+    msg.installation_id_v2 = Installation.instance().installation_id_v2
+    msg.installation_id_v3 = Installation.instance().installation_id_v3
+    if Credentials.get_current().activation:
+        msg.email = Credentials.get_current().activation.email
+    else:
+        msg.email = ""

@@ -16,9 +16,9 @@
  */
 
 import React from "react"
-import UIRadio from "components/shared/Radio"
-import { Radio as RadioProto } from "autogen/proto"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
+import UIRadio from "src/components/shared/Radio"
+import { Radio as RadioProto } from "src/autogen/proto"
+import { WidgetStateManager, Source } from "src/lib/WidgetStateManager"
 
 export interface Props {
   disabled: boolean
@@ -43,8 +43,7 @@ class Radio extends React.PureComponent<Props, State> {
   get initialValue(): number {
     // If WidgetStateManager knew a value for this widget, initialize to that.
     // Otherwise, use the default value from the widget protobuf.
-    const widgetId = this.props.element.id
-    const storedValue = this.props.widgetMgr.getIntValue(widgetId)
+    const storedValue = this.props.widgetMgr.getIntValue(this.props.element)
     return storedValue !== undefined ? storedValue : this.props.element.default
   }
 
@@ -71,8 +70,11 @@ class Radio extends React.PureComponent<Props, State> {
   }
 
   private setWidgetValue = (source: Source): void => {
-    const widgetId = this.props.element.id
-    this.props.widgetMgr.setIntValue(widgetId, this.state.value, source)
+    this.props.widgetMgr.setIntValue(
+      this.props.element,
+      this.state.value,
+      source
+    )
   }
 
   private onChange = (selectedIndex: number): void => {
@@ -83,7 +85,7 @@ class Radio extends React.PureComponent<Props, State> {
 
   public render = (): React.ReactNode => {
     const { disabled, element, width } = this.props
-    const { options, label } = element
+    const { options, label, help } = element
 
     return (
       <UIRadio
@@ -93,6 +95,7 @@ class Radio extends React.PureComponent<Props, State> {
         width={width}
         disabled={disabled}
         value={this.state.value}
+        help={help}
       />
     )
   }

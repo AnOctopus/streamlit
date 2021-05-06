@@ -16,9 +16,9 @@
  */
 
 import axios from "axios"
-import HttpClient from "lib/HttpClient"
-import { SessionInfo } from "lib/SessionInfo"
-import { buildHttpUri } from "lib/UriUtil"
+import HttpClient from "src/lib/HttpClient"
+import { SessionInfo } from "src/lib/SessionInfo"
+import { buildHttpUri } from "src/lib/UriUtil"
 
 const MOCK_SERVER_URI = {
   host: "streamlit.mock",
@@ -37,6 +37,7 @@ describe("HttpClient", () => {
       installationId: "iid",
       installationIdV1: "iid1",
       installationIdV2: "iid2",
+      installationIdV3: "iid3",
       authorEmail: "ae",
       maxCachedMessageAge: 2,
       commandLine: "command line",

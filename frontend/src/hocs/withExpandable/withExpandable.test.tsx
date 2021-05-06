@@ -16,7 +16,7 @@
  */
 
 import React, { ComponentType } from "react"
-import { shallow } from "lib/test_util"
+import { mount } from "src/lib/test_util"
 import { StatelessAccordion } from "baseui/accordion"
 import withExpandable, { Props } from "./withExpandable"
 
@@ -35,7 +35,7 @@ describe("withExpandable HOC", () => {
     const props = getProps()
     const WithHoc = withExpandable(testComponent)
     // @ts-ignore
-    const wrapper = shallow(<WithHoc {...props} />)
+    const wrapper = mount(<WithHoc {...props} />)
     expect(wrapper.find(StatelessAccordion).exists()).toBe(true)
   })
 
@@ -43,7 +43,7 @@ describe("withExpandable HOC", () => {
     const props = getProps()
     const WithHoc = withExpandable(testComponent)
     // @ts-ignore
-    const wrapper = shallow(<WithHoc {...props} />)
+    const wrapper = mount(<WithHoc {...props} />)
     const accordion = wrapper.find(StatelessAccordion)
 
     expect(accordion.prop("expanded").length).toBe(1)
@@ -55,7 +55,7 @@ describe("withExpandable HOC", () => {
     })
     const WithHoc = withExpandable(testComponent)
     // @ts-ignore
-    const wrapper = shallow(<WithHoc {...props} />)
+    const wrapper = mount(<WithHoc {...props} />)
     const accordion = wrapper.find(StatelessAccordion)
 
     expect(accordion.prop("expanded").length).toBe(0)
@@ -67,11 +67,11 @@ describe("withExpandable HOC", () => {
     })
     const WithHoc = withExpandable(testComponent)
     // @ts-ignore
-    const wrapper = shallow(<WithHoc {...props} />)
+    const wrapper = mount(<WithHoc {...props} />)
     const accordion = wrapper.find(StatelessAccordion)
     const overrides = accordion.prop("overrides")
 
     // @ts-ignore
-    expect(overrides.Header.props.className).toContain("stale-element")
+    expect(overrides.Header.props.isStale).toBeTruthy()
   })
 })

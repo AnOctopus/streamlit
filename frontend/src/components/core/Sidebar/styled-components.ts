@@ -16,7 +16,6 @@
  */
 
 import styled from "@emotion/styled"
-import { transparentize } from "color2k"
 
 export const StyledSidebar = styled.section(({ theme }) => ({
   [`@media (max-width: ${theme.breakpoints.md})`]: {
@@ -55,10 +54,14 @@ export const StyledSidebar = styled.section(({ theme }) => ({
 export interface StyledSidebarContentProps {
   isCollapsed: boolean
 }
+
+function convertRemToEm(s: string): string {
+  return s.replace(/rem$/, "em")
+}
+
 export const StyledSidebarContent = styled.div<StyledSidebarContentProps>(
   ({ isCollapsed, theme }) => ({
-    backgroundColor: theme.colors.lightestGray,
-    backgroundImage: `linear-gradient(to bottom, ${theme.colors.lightestGray}, ${theme.colors.gray10})`,
+    backgroundColor: theme.colors.bgColor,
     backgroundAttachment: "fixed",
     flexShrink: 0,
     height: "100vh",
@@ -75,7 +78,9 @@ export const StyledSidebarContent = styled.div<StyledSidebarContentProps>(
     },
 
     [`@media (max-width: ${theme.breakpoints.md})`]: {
-      boxShadow: `0 0 2rem ${isCollapsed ? "transparent" : "#a3a8b488"}`,
+      boxShadow: `-2rem 0 2rem 2rem ${
+        isCollapsed ? "transparent" : "#00000029"
+      }`,
       zIndex: theme.zIndices.sidebarMobile,
     },
 
@@ -104,6 +109,33 @@ export const StyledSidebarContent = styled.div<StyledSidebarContentProps>(
       fontWeight: 300,
       textTransform: "uppercase",
     },
+
+    small: {
+      color: theme.colors.gray,
+      fontSize: theme.fontSizes.smDefault,
+      "p, ol, ul, dl, li": {
+        fontSize: "inherit",
+      },
+
+      "h1, h2, h3, h4, h5, h6": {
+        color: "inherit",
+      },
+
+      // sizes taken from default styles, but using em instead of rem, so it
+      // inherits the <small>'s shrunk size
+      h1: {
+        fontSize: convertRemToEm(theme.fontSizes.xl),
+      },
+      h2: {
+        fontSize: convertRemToEm(theme.fontSizes.lg),
+      },
+      h3: {
+        fontSize: "1.125em",
+      },
+      "h4,h5,h6": {
+        fontSize: "1em",
+      },
+    },
   })
 )
 
@@ -112,7 +144,7 @@ export const StyledSidebarCloseButton = styled.div(({ theme }) => ({
   top: theme.spacing.sm,
   right: theme.spacing.sm,
   zIndex: 1,
-  color: transparentize(theme.colors.bodyText, 0.75),
+  color: theme.colors.fadedText40,
 }))
 
 export interface StyledSidebarCollapsedControlProps {
@@ -129,14 +161,9 @@ export const StyledSidebarCollapsedControl = styled.div<
   transition: "left 300ms",
   transitionDelay: "left 300ms",
 
-  color: transparentize(theme.colors.bodyText, 0.75),
+  color: theme.colors.fadedText40,
 
   [`@media (max-width: ${theme.breakpoints.md})`]: {
     color: theme.colors.bodyText,
-  },
-
-  "&:hover": {
-    color: theme.colors.white,
-    borderColor: "#1d2124",
   },
 }))

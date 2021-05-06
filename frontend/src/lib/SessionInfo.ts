@@ -15,7 +15,13 @@
  * limitations under the License.
  */
 
-import { Config, EnvironmentInfo, Initialize, UserInfo } from "autogen/proto"
+import {
+  Config,
+  EnvironmentInfo,
+  Initialize,
+  NewReport,
+  UserInfo,
+} from "src/autogen/proto"
 
 export interface Args {
   sessionId: string
@@ -24,6 +30,7 @@ export interface Args {
   installationId: string
   installationIdV1: string
   installationIdV2: string
+  installationIdV3: string
   authorEmail: string
   maxCachedMessageAge: number
   commandLine: string
@@ -43,6 +50,8 @@ export class SessionInfo {
   public readonly installationIdV1: string
 
   public readonly installationIdV2: string
+
+  public readonly installationIdV3: string
 
   public readonly authorEmail: string
 
@@ -91,10 +100,11 @@ export class SessionInfo {
   }
 
   /** Create a SessionInfo from the relevant bits of an initialize message. */
-  public static fromInitializeMessage(initialize: Initialize): SessionInfo {
-    const environmentInfo = initialize.environmentInfo as EnvironmentInfo
+  public static fromNewReportMessage(newReport: NewReport): SessionInfo {
+    const initialize = newReport.initialize as Initialize
+    const config = newReport.config as Config
     const userInfo = initialize.userInfo as UserInfo
-    const config = initialize.config as Config
+    const environmentInfo = initialize.environmentInfo as EnvironmentInfo
 
     return new SessionInfo({
       sessionId: initialize.sessionId,
@@ -103,6 +113,7 @@ export class SessionInfo {
       installationId: userInfo.installationId,
       installationIdV1: userInfo.installationIdV1,
       installationIdV2: userInfo.installationIdV2,
+      installationIdV3: userInfo.installationIdV3,
       authorEmail: userInfo.email,
       maxCachedMessageAge: config.maxCachedMessageAge,
       commandLine: initialize.commandLine,
@@ -117,6 +128,7 @@ export class SessionInfo {
     installationId,
     installationIdV1,
     installationIdV2,
+    installationIdV3,
     authorEmail,
     maxCachedMessageAge,
     commandLine,
@@ -129,6 +141,7 @@ export class SessionInfo {
       installationId == null ||
       installationIdV1 == null ||
       installationIdV2 == null ||
+      installationIdV3 == null ||
       authorEmail == null ||
       maxCachedMessageAge == null ||
       commandLine == null ||
@@ -143,6 +156,7 @@ export class SessionInfo {
     this.installationId = installationId
     this.installationIdV1 = installationIdV1
     this.installationIdV2 = installationIdV2
+    this.installationIdV3 = installationIdV3
     this.authorEmail = authorEmail
     this.maxCachedMessageAge = maxCachedMessageAge
     this.commandLine = commandLine

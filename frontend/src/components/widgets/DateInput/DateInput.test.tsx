@@ -16,14 +16,14 @@
  */
 
 import React from "react"
-import { mount } from "lib/test_util"
-import { WidgetStateManager } from "lib/WidgetStateManager"
-import { DateInput as DateInputProto } from "autogen/proto"
+import { mount } from "src/lib/test_util"
+import { WidgetStateManager } from "src/lib/WidgetStateManager"
+import { DateInput as DateInputProto } from "src/autogen/proto"
 
 import { Datepicker as UIDatePicker } from "baseui/datepicker"
 import DateInput, { Props } from "./DateInput"
 
-jest.mock("lib/WidgetStateManager")
+jest.mock("src/lib/WidgetStateManager")
 
 const sendBackMsg = jest.fn()
 
@@ -54,9 +54,11 @@ describe("DateInput widget", () => {
 
   it("should set widget value on did mount", () => {
     expect(props.widgetMgr.setStringArrayValue).toHaveBeenCalledWith(
-      props.element.id,
+      props.element,
       props.element.default,
-      { fromUi: false }
+      {
+        fromUi: false,
+      }
     )
   })
 
@@ -98,7 +100,7 @@ describe("DateInput widget", () => {
 
     expect(wrapper.find(UIDatePicker).prop("value")).toStrictEqual([newDate])
     expect(props.widgetMgr.setStringArrayValue).toHaveBeenCalledWith(
-      props.element.id,
+      props.element,
       ["2020/02/06"],
       {
         fromUi: true,

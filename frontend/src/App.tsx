@@ -19,56 +19,77 @@ import React, { Fragment, PureComponent, ReactNode } from "react"
 import moment from "moment"
 import { HotKeys, KeyMap } from "react-hotkeys"
 import { fromJS } from "immutable"
+import { enableAllPlugins as enableImmerPlugins } from "immer"
 import classNames from "classnames"
+
 // Other local imports.
-import PageLayoutContext from "components/core/PageLayoutContext"
-import ReportView from "components/core/ReportView"
-import StatusWidget from "components/core/StatusWidget"
-import MainMenu from "components/core/MainMenu"
-import Header from "components/core/Header"
+import PageLayoutContext from "src/components/core/PageLayoutContext"
+import ReportView from "src/components/core/ReportView"
+import StatusWidget from "src/components/core/StatusWidget"
+import MainMenu from "src/components/core/MainMenu"
+import Header from "src/components/core/Header"
 import {
   DialogProps,
   DialogType,
   StreamlitDialog,
-} from "components/core/StreamlitDialog/"
-import { ConnectionManager } from "lib/ConnectionManager"
-import { WidgetStateManager } from "lib/WidgetStateManager"
-import { ConnectionState } from "lib/ConnectionState"
-import { ReportRunState } from "lib/ReportRunState"
-import { SessionEventDispatcher } from "lib/SessionEventDispatcher"
+} from "src/components/core/StreamlitDialog/"
+import { ConnectionManager } from "src/lib/ConnectionManager"
+import { WidgetStateManager } from "src/lib/WidgetStateManager"
+import { ConnectionState } from "src/lib/ConnectionState"
+import { ReportRunState } from "src/lib/ReportRunState"
+import { SessionEventDispatcher } from "src/lib/SessionEventDispatcher"
 import {
   setCookie,
   hashString,
   isEmbeddedInIFrame,
   notUndefined,
   getElementWidgetID,
-} from "lib/utils"
+} from "src/lib/utils"
 import {
   BackMsg,
+  CustomThemeConfig,
   Delta,
   ForwardMsg,
   ForwardMsgMetadata,
   Initialize,
   NewReport,
-  IDeployParams,
   PageConfig,
   PageInfo,
   SessionEvent,
   WidgetStates,
   SessionState,
   Config,
-} from "autogen/proto"
+  IGitInfo,
+  GitInfo,
+} from "src/autogen/proto"
+import { without, concat } from "lodash"
 
-import { RERUN_PROMPT_MODAL_DIALOG } from "lib/baseconsts"
-import { SessionInfo } from "lib/SessionInfo"
-import { MetricsManager } from "lib/MetricsManager"
-import { FileUploadClient } from "lib/FileUploadClient"
+import { RERUN_PROMPT_MODAL_DIALOG } from "src/lib/baseconsts"
+import { SessionInfo } from "src/lib/SessionInfo"
+import { MetricsManager } from "src/lib/MetricsManager"
+import { FileUploadClient } from "src/lib/FileUploadClient"
+import { logError, logMessage } from "src/lib/log"
+import { ReportRoot } from "src/lib/ReportNode"
 
-import { logError, logMessage } from "lib/log"
-import { UserSettings } from "components/core/StreamlitDialog/UserSettings"
-import { ReportRoot } from "./lib/ReportNode"
-import { ComponentRegistry } from "./components/widgets/CustomComponent"
-import { handleFavicon } from "./components/elements/Favicon"
+import { UserSettings } from "src/components/core/StreamlitDialog/UserSettings"
+import { ComponentRegistry } from "src/components/widgets/CustomComponent"
+import { handleFavicon } from "src/components/elements/Favicon"
+
+import {
+  CUSTOM_THEME_NAME,
+  createAutoTheme,
+  createPresetThemes,
+  createTheme,
+  getCachedTheme,
+  isPresetTheme,
+  ThemeConfig,
+} from "src/theme"
+import {
+  FormsData,
+  FormsManager,
+  createFormsData,
+} from "src/components/widgets/Form"
+
 import { StyledApp } from "./styled-components"
 
 import withS4ACommunication, {
@@ -79,12 +100,18 @@ import withScreencast, {
   ScreenCastHOC,
 } from "./hocs/withScreencast/withScreencast"
 
-// WARNING: order matters
-import "assets/css/theme.scss"
+// Used to import fonts + responsive reboot items
+import "src/assets/css/theme.scss"
 
 export interface Props {
   screenCast: ScreenCastHOC
   s4aCommunication: S4ACommunicationHOC
+  theme: {
+    activeTheme: ThemeConfig
+    availableThemes: ThemeConfig[]
+    setTheme: (theme: ThemeConfig) => void
+    addThemes: (themes: ThemeConfig[]) => void
+  }
 }
 
 interface State {
@@ -101,7 +128,11 @@ interface State {
   layout: PageConfig.Layout
   initialSidebarState: PageConfig.SidebarState
   allowRunOnSave: boolean
-  deployParams?: IDeployParams | null
+  reportFinishedHandlers: (() => void)[]
+  developerMode: boolean
+  themeHash: string | null
+  gitInfo: IGitInfo | null
+  formsData: FormsData
 }
 
 const ELEMENT_LIST_BUFFER_TIMEOUT_MS = 10
@@ -110,20 +141,19 @@ const ELEMENT_LIST_BUFFER_TIMEOUT_MS = 10
 declare global {
   interface Window {
     streamlitDebug: any
-    streamlitShareMetadata: Record<string, unknown>
   }
 }
 
 export class App extends PureComponent<Props, State> {
   private readonly sessionEventDispatcher: SessionEventDispatcher
 
-  private readonly statusWidgetRef: React.RefObject<StatusWidget>
-
   private connectionManager: ConnectionManager | null
 
   private readonly widgetMgr: WidgetStateManager
 
   private readonly uploadClient: FileUploadClient
+
+  private readonly formsMgr: FormsManager
 
   /**
    * When new Deltas are received, they are applied to `pendingElementsBuffer`
@@ -140,8 +170,15 @@ export class App extends PureComponent<Props, State> {
 
   private readonly componentRegistry: ComponentRegistry
 
+  static contextType = PageLayoutContext
+
   constructor(props: Props) {
     super(props)
+
+    // Initialize immerjs
+    enableImmerPlugins()
+
+    const initialFormsData = createFormsData()
 
     this.state = {
       connectionState: ConnectionState.INITIAL,
@@ -158,23 +195,48 @@ export class App extends PureComponent<Props, State> {
       layout: PageConfig.Layout.CENTERED,
       initialSidebarState: PageConfig.SidebarState.AUTO,
       allowRunOnSave: true,
-      deployParams: null,
+      reportFinishedHandlers: [],
+      // A hack for now to get theming through. Product to think through how
+      // developer mode should be designed in the long term.
+      developerMode: window.location.host.includes("localhost"),
+      themeHash: null,
+      gitInfo: null,
+      formsData: initialFormsData,
     }
 
     this.sessionEventDispatcher = new SessionEventDispatcher()
-    this.statusWidgetRef = React.createRef<StatusWidget>()
     this.connectionManager = null
-    this.widgetMgr = new WidgetStateManager(this.sendRerunBackMsg)
-    this.uploadClient = new FileUploadClient(() => {
-      return this.connectionManager
-        ? this.connectionManager.getBaseUriParts()
-        : undefined
-    }, true)
+
+    this.formsMgr = new FormsManager(initialFormsData, formsData =>
+      this.setState({ formsData })
+    )
+
+    this.widgetMgr = new WidgetStateManager({
+      sendRerunBackMsg: this.sendRerunBackMsg,
+      pendingFormsChanged: formIds => this.formsMgr.setPendingForms(formIds),
+    })
+
+    this.uploadClient = new FileUploadClient({
+      getServerUri: () => {
+        return this.connectionManager
+          ? this.connectionManager.getBaseUriParts()
+          : undefined
+      },
+      formsWithPendingRequestsChanged: formIds =>
+        // A form cannot be submitted if it contains a FileUploader widget
+        // that's currently uploading. We write that state here, in response
+        // to a FileUploadClient callback. The FormSubmitButton element
+        // reads the state.
+        this.formsMgr.setFormsWithUploads(formIds),
+      csrfEnabled: true,
+    })
+
     this.componentRegistry = new ComponentRegistry(() => {
       return this.connectionManager
         ? this.connectionManager.getBaseUriParts()
         : undefined
     })
+
     this.pendingElementsTimerRunning = false
     this.pendingElementsBuffer = this.state.elements
 
@@ -222,6 +284,9 @@ export class App extends PureComponent<Props, State> {
     ) {
       this.sendRerunBackMsg()
     }
+    if (this.props.s4aCommunication.currentState.forcedModalClose) {
+      this.closeDialog()
+    }
   }
 
   showError(title: string, errorNode: ReactNode): void {
@@ -233,6 +298,21 @@ export class App extends PureComponent<Props, State> {
       onClose: () => {},
     }
     this.openDialog(newDialog)
+  }
+
+  showDeployError = (
+    title: string,
+    errorNode: ReactNode,
+    onContinue?: () => void
+  ): void => {
+    this.openDialog({
+      type: DialogType.DEPLOY_ERROR,
+      title,
+      msg: errorNode,
+      onContinue,
+      onClose: () => {},
+      onTryAgain: this.sendLoadGitInfoBackMsg,
+    })
   }
 
   /**
@@ -279,6 +359,12 @@ export class App extends PureComponent<Props, State> {
     }
   }
 
+  handleGitInfoChanged = (gitInfo: IGitInfo): void => {
+    this.setState({
+      gitInfo,
+    })
+  }
+
   /**
    * Callback when we get a message from the server.
    */
@@ -310,6 +396,8 @@ export class App extends PureComponent<Props, State> {
           this.handlePageConfigChanged(pageConfig),
         pageInfoChanged: (pageInfo: PageInfo) =>
           this.handlePageInfoChanged(pageInfo),
+        gitInfoChanged: (gitInfo: GitInfo) =>
+          this.handleGitInfoChanged(gitInfo),
         reportFinished: (status: ForwardMsg.ReportFinishedStatus) =>
           this.handleReportFinished(status),
         uploadReportProgress: (progress: number) =>
@@ -376,7 +464,9 @@ export class App extends PureComponent<Props, State> {
 
   handlePageInfoChanged = (pageInfo: PageInfo): void => {
     const { queryString } = pageInfo
-    window.history.pushState({}, "", queryString ? `?${queryString}` : "/")
+    const targetUrl =
+      document.location.pathname + (queryString ? `?${queryString}` : "")
+    window.history.pushState({}, "", targetUrl)
 
     this.props.s4aCommunication.sendMessage({
       type: "SET_QUERY_PARAM",
@@ -424,6 +514,14 @@ export class App extends PureComponent<Props, State> {
           "deltaStats",
           MetricsManager.current.getAndResetDeltaCounter()
         )
+
+        const { availableThemes, activeTheme } = this.props.theme
+        const customThemeDefined =
+          availableThemes.length > createPresetThemes().length
+        MetricsManager.current.enqueue("themeStats", {
+          activeThemeName: activeTheme.name,
+          customThemeDefined,
+        })
 
         const customComponentCounter = MetricsManager.current.getAndResetCustomComponentCounter()
         Object.entries(customComponentCounter).forEach(([name, count]) => {
@@ -479,6 +577,8 @@ export class App extends PureComponent<Props, State> {
    */
   handleNewReport = (newReportProto: NewReport): void => {
     const initialize = newReportProto.initialize as Initialize
+    const config = newReportProto.config as Config
+    const themeInput = newReportProto.customTheme as CustomThemeConfig
 
     if (App.hasStreamlitVersionChanged(initialize)) {
       window.location.reload()
@@ -490,16 +590,17 @@ export class App extends PureComponent<Props, State> {
     // the NewReport message, we perform some one-time initialization.
     if (!SessionInfo.isSet()) {
       // We're not initialized. Perform one-time initialization.
-      this.handleOneTimeInitialization(initialize)
+      this.handleOneTimeInitialization(newReportProto)
     }
 
+    this.processThemeInput(themeInput)
+    this.setState({
+      sharingEnabled: config.sharingEnabled,
+      allowRunOnSave: config.allowRunOnSave,
+    })
+
     const { reportHash } = this.state
-    const {
-      reportId,
-      name: reportName,
-      scriptPath,
-      deployParams,
-    } = newReportProto
+    const { reportId, name: reportName, scriptPath } = newReportProto
 
     const newReportHash = hashString(
       SessionInfo.current.installationId + scriptPath
@@ -509,6 +610,9 @@ export class App extends PureComponent<Props, State> {
     document.title = `${reportName} · Streamlit`
     handleFavicon(`${process.env.PUBLIC_URL}/favicon.png`)
 
+    MetricsManager.current.setMetadata(
+      this.props.s4aCommunication.currentState.streamlitShareMetadata
+    )
     MetricsManager.current.setReportHash(newReportHash)
     MetricsManager.current.clearDeltaCounter()
 
@@ -517,19 +621,20 @@ export class App extends PureComponent<Props, State> {
     if (reportHash === newReportHash) {
       this.setState({
         reportId,
-        deployParams,
       })
     } else {
-      this.clearAppState(newReportHash, reportId, reportName, deployParams)
+      this.clearAppState(newReportHash, reportId, reportName)
     }
   }
 
   /**
    * Performs one-time initialization. This is called from `handleNewReport`.
    */
-  handleOneTimeInitialization = (initialize: Initialize): void => {
-    SessionInfo.current = SessionInfo.fromInitializeMessage(initialize)
-    const config = initialize.config as Config
+  handleOneTimeInitialization = (newReportProto: NewReport): void => {
+    const initialize = newReportProto.initialize as Initialize
+    const config = newReportProto.config as Config
+
+    SessionInfo.current = SessionInfo.fromNewReportMessage(newReportProto)
 
     MetricsManager.current.initialize({
       gatherUsageStats: config.gatherUsageStats,
@@ -539,13 +644,57 @@ export class App extends PureComponent<Props, State> {
       pythonVersion: SessionInfo.current.pythonVersion,
     })
 
-    this.setState({
-      sharingEnabled: config.sharingEnabled,
-      allowRunOnSave: config.allowRunOnSave,
-    })
-
     this.props.s4aCommunication.connect()
     this.handleSessionStateChanged(initialize.sessionState)
+  }
+
+  createThemeHash = (themeInput: CustomThemeConfig): string => {
+    if (!themeInput) {
+      // If themeInput is null, then we didn't receive a custom theme for this
+      // app from the server. We use a hardcoded string literal for the
+      // themeHash in this case.
+      return "hash_for_undefined_custom_theme"
+    }
+
+    const themeInputEntries = Object.entries(themeInput)
+    // Ensure that our themeInput fields are in a consistent order when
+    // stringified below. Sorting an array of arrays in javascript sorts by the
+    // 0th element of the inner arrays, uses the 1st element to tiebreak, and
+    // so on.
+    themeInputEntries.sort()
+    return hashString(themeInputEntries.join(":"))
+  }
+
+  processThemeInput(themeInput: CustomThemeConfig): void {
+    const themeHash = this.createThemeHash(themeInput)
+    if (themeHash === this.state.themeHash) {
+      return
+    }
+    this.setState({ themeHash })
+
+    const usingCustomTheme = !isPresetTheme(this.props.theme.activeTheme)
+
+    if (themeInput) {
+      const customTheme = createTheme(CUSTOM_THEME_NAME, themeInput)
+      // For now, users can only add one custom theme.
+      this.props.theme.addThemes([customTheme])
+
+      const userPreference = getCachedTheme()
+      if (userPreference === null || usingCustomTheme) {
+        // Update the theme to be customTheme either if the user hasn't set a
+        // preference (developer-provided custom themes should be the default
+        // for an app) or if a custom theme is currently active (to ensure that
+        // we pick up any new changes to it).
+        this.props.theme.setTheme(customTheme)
+      }
+    } else if (!themeInput) {
+      // Remove the custom theme menu option.
+      this.props.theme.addThemes([])
+
+      if (usingCustomTheme) {
+        this.props.theme.setTheme(createAutoTheme())
+      }
+    }
   }
 
   /**
@@ -554,6 +703,12 @@ export class App extends PureComponent<Props, State> {
    */
   handleReportFinished(status: ForwardMsg.ReportFinishedStatus): void {
     if (status === ForwardMsg.ReportFinishedStatus.FINISHED_SUCCESSFULLY) {
+      // Notify any subscribers of this event (and do it on the next cycle of
+      // the event loop)
+      window.setTimeout(() => {
+        this.state.reportFinishedHandlers.map(handler => handler())
+      }, 0)
+
       // Clear any stale elements left over from the previous run.
       // (We don't do this if our script had a compilation error and didn't
       // finish successfully.)
@@ -594,15 +749,13 @@ export class App extends PureComponent<Props, State> {
   clearAppState(
     reportHash: string,
     reportId: string,
-    reportName: string,
-    deployParams?: IDeployParams | null
+    reportName: string
   ): void {
     this.setState(
       {
         reportId,
         reportName,
         reportHash,
-        deployParams,
         elements: ReportRoot.empty(),
       },
       () => {
@@ -624,13 +777,14 @@ export class App extends PureComponent<Props, State> {
    */
   closeDialog = (): void => {
     this.setState({ dialog: undefined })
+    this.props.s4aCommunication.onModalReset()
   }
 
   /**
    * Saves a UserSettings object.
    */
   saveSettings = (newSettings: UserSettings): void => {
-    const prevRunOnSave = this.state.userSettings.runOnSave
+    const { runOnSave: prevRunOnSave } = this.state.userSettings
     const { runOnSave } = newSettings
 
     this.setState({ userSettings: newSettings })
@@ -762,6 +916,19 @@ export class App extends PureComponent<Props, State> {
     this.widgetMgr.sendUpdateWidgetsMessage()
   }
 
+  sendLoadGitInfoBackMsg = (): void => {
+    if (!this.isServerConnected()) {
+      logError("Cannot load git information when disconnected from server.")
+      return
+    }
+
+    this.sendBackMsg(
+      new BackMsg({
+        loadGitInfo: true,
+      })
+    )
+  }
+
   sendRerunBackMsg = (widgetStates?: WidgetStates | undefined): void => {
     const { queryParams } = this.props.s4aCommunication.currentState
 
@@ -820,6 +987,15 @@ export class App extends PureComponent<Props, State> {
     }
   }
 
+  openThemeCreatorDialog = (): void => {
+    const newDialog: DialogProps = {
+      type: DialogType.THEME_CREATOR,
+      backToSettings: this.settingsCallback,
+      onClose: this.closeDialog,
+    }
+    this.openDialog(newDialog)
+  }
+
   /**
    * Asks the server to clear the st_cache
    */
@@ -863,7 +1039,7 @@ export class App extends PureComponent<Props, State> {
       : false
   }
 
-  settingsCallback = (): void => {
+  settingsCallback = (animateModal = true): void => {
     const newDialog: DialogProps = {
       type: DialogType.SETTINGS,
       isServerConnected: this.isServerConnected(),
@@ -871,6 +1047,9 @@ export class App extends PureComponent<Props, State> {
       allowRunOnSave: this.state.allowRunOnSave,
       onSave: this.saveSettings,
       onClose: () => {},
+      developerMode: this.state.developerMode,
+      openThemeCreator: this.openThemeCreatorDialog,
+      animateModal,
     }
     this.openDialog(newDialog)
   }
@@ -895,11 +1074,22 @@ export class App extends PureComponent<Props, State> {
     this.setState({ isFullScreen })
   }
 
+  addReportFinishedHandler = (func: () => void): void => {
+    this.setState({
+      reportFinishedHandlers: concat(this.state.reportFinishedHandlers, func),
+    })
+  }
+
+  removeReportFinishedHandler = (func: () => void): void => {
+    this.setState({
+      reportFinishedHandlers: without(this.state.reportFinishedHandlers, func),
+    })
+  }
+
   render(): JSX.Element {
     const {
       allowRunOnSave,
       connectionState,
-      deployParams,
       dialog,
       elements,
       initialSidebarState,
@@ -909,6 +1099,7 @@ export class App extends PureComponent<Props, State> {
       reportRunState,
       sharingEnabled,
       userSettings,
+      gitInfo,
     } = this.state
     const outerDivClass = classNames("stApp", {
       "streamlit-embedded": isEmbeddedInIFrame(),
@@ -935,6 +1126,12 @@ export class App extends PureComponent<Props, State> {
           embedded: isEmbeddedInIFrame(),
           isFullScreen,
           setFullScreen: this.handleFullScreen,
+          addReportFinishedHandler: this.addReportFinishedHandler,
+          removeReportFinishedHandler: this.removeReportFinishedHandler,
+          activeTheme: this.props.theme.activeTheme,
+          availableThemes: this.props.theme.availableThemes,
+          setTheme: this.props.theme.setTheme,
+          addThemes: this.props.theme.addThemes,
         }}
       >
         <HotKeys
@@ -947,7 +1144,6 @@ export class App extends PureComponent<Props, State> {
             {/* The tabindex below is required for testing. */}
             <Header>
               <StatusWidget
-                ref={this.statusWidgetRef}
                 connectionState={connectionState}
                 sessionEventDispatcher={this.sessionEventDispatcher}
                 reportRunState={reportRunState}
@@ -967,7 +1163,14 @@ export class App extends PureComponent<Props, State> {
                 screenCastState={this.props.screenCast.currentState}
                 s4aMenuItems={this.props.s4aCommunication.currentState.items}
                 sendS4AMessage={this.props.s4aCommunication.sendMessage}
-                deployParams={deployParams}
+                gitInfo={gitInfo}
+                showDeployError={this.showDeployError}
+                closeDialog={this.closeDialog}
+                isDeployErrorModalOpen={
+                  this.state.dialog?.type === DialogType.DEPLOY_ERROR
+                }
+                loadGitInfo={this.sendLoadGitInfoBackMsg}
+                canDeploy={SessionInfo.isSet() && !SessionInfo.isHello}
               />
             </Header>
 
@@ -982,6 +1185,8 @@ export class App extends PureComponent<Props, State> {
               widgetsDisabled={connectionState !== ConnectionState.CONNECTED}
               uploadClient={this.uploadClient}
               componentRegistry={this.componentRegistry}
+              formsData={this.state.formsData}
+              formsMgr={this.formsMgr}
             />
             {renderedDialog}
           </StyledApp>

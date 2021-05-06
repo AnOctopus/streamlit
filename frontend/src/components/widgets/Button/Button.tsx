@@ -16,36 +16,37 @@
  */
 
 import React, { ReactElement } from "react"
-import UIButton, { Kind, Size } from "components/shared/Button"
-import { Button as ButtonProto } from "autogen/proto"
-import { WidgetStateManager } from "lib/WidgetStateManager"
+import { Button as ButtonProto } from "src/autogen/proto"
+import UIButton, {
+  ButtonTooltip,
+  Kind,
+  Size,
+} from "src/components/shared/Button"
+import { WidgetStateManager } from "src/lib/WidgetStateManager"
 
-export interface ButtonProps {
+export interface Props {
   disabled: boolean
   element: ButtonProto
   widgetMgr: WidgetStateManager
   width: number
 }
 
-function Button(props: ButtonProps): ReactElement {
+function Button(props: Props): ReactElement {
   const { disabled, element, widgetMgr, width } = props
   const style = { width }
 
-  const handleClick = (): void => {
-    const widgetId = element.id
-    widgetMgr.setTriggerValue(widgetId, { fromUi: true })
-  }
-
   return (
     <div className="row-widget stButton" style={style}>
-      <UIButton
-        kind={Kind.PRIMARY}
-        size={Size.SMALL}
-        disabled={disabled}
-        onClick={handleClick}
-      >
-        {element.label}
-      </UIButton>
+      <ButtonTooltip help={element.help}>
+        <UIButton
+          kind={Kind.PRIMARY}
+          size={Size.SMALL}
+          disabled={disabled}
+          onClick={() => widgetMgr.setTriggerValue(element, { fromUi: true })}
+        >
+          {element.label}
+        </UIButton>
+      </ButtonTooltip>
     </div>
   )
 }

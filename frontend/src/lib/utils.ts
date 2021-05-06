@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Alert as AlertProto, Element } from "autogen/proto"
+import { Alert as AlertProto, Element } from "src/autogen/proto"
 import _ from "lodash"
 import url from "url"
 import xxhash from "xxhashjs"
@@ -150,4 +150,14 @@ export function setCookie(
 /** Return an Element's widget ID if it's a widget, and undefined otherwise. */
 export function getElementWidgetID(element: Element): string | undefined {
   return _.get(element as any, [requireNonNull(element.type), "id"])
+}
+
+/** True if the given form ID is non-null and non-empty. */
+export function isValidFormId(formId?: string): formId is string {
+  return formId != null && formId.length > 0
+}
+
+/** True if the given widget element is part of a form. */
+export function isInForm(widget: { formId?: string }): boolean {
+  return isValidFormId(widget.formId)
 }
