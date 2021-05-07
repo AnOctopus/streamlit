@@ -97,19 +97,16 @@ class SessionState(MutableMapping):
         return str(f"_new_state={self._new_state}, _old_state={self._old_state}")
 
     def __getitem__(self, key: str) -> Any:
-        new_state_value = self._new_state.get(key, None)
-        if new_state_value is not None:
-            return new_state_value
-
-        widget_state = beta_widget_value(key)
-        if widget_state is not None:
-            return widget_state
-
-        old_state_value = self._old_state.get(key, None)
-        if old_state_value is not None:
-            return old_state_value
-
-        raise KeyError
+        try:
+            return self._new_state[key]
+        except KeyError:
+            try:
+                return beta_widget_value(key)
+            except KeyError:
+                try:
+                    return self._old_state[key]
+                except KeyError:
+                    raise KeyError
 
     def __setitem__(self, key: str, value: Any) -> None:
         ctx = ReportThread.get_report_ctx()
