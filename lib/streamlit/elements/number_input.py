@@ -37,6 +37,7 @@ class NumberInputMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ):
         """Display a numeric input widget.
 
@@ -85,13 +86,13 @@ class NumberInputMixin:
             key = label
 
         # Ensure that all arguments are of the same type.
-        args = [min_value, max_value, value, step]
+        argsl = [min_value, max_value, value, step]
 
         int_args = all(
-            isinstance(a, (numbers.Integral, type(None), NoValue)) for a in args
+            isinstance(a, (numbers.Integral, type(None), NoValue)) for a in argsl
         )
 
-        float_args = all(isinstance(a, (float, type(None), NoValue)) for a in args)
+        float_args = all(isinstance(a, (float, type(None), NoValue)) for a in argsl)
 
         if not int_args and not float_args:
             raise StreamlitAPIException(
@@ -101,6 +102,9 @@ class NumberInputMixin:
                 f"\n`max_value` has {type(max_value).__name__} type."
                 f"\n`step` has {type(step).__name__} type."
             )
+
+        state = get_session_state()
+        force_set_value = value is not None or state.is_new_value(key)
 
         if value is None:
             # Value not passed in, try to get it from state

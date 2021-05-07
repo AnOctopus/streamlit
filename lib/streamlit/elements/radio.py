@@ -35,6 +35,7 @@ class RadioMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ) -> str:
         """Display a radio button widget.
 

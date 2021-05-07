@@ -32,6 +32,7 @@ class ColorPickerMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ):
         """Display a color picker widget.
 

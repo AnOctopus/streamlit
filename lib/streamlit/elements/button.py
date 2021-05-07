@@ -29,7 +29,15 @@ For more information, refer to the
 
 
 class ButtonMixin:
-    def button(self, label, key=None, on_change=None, args=None, kwargs=None) -> bool:
+    def button(
+        self,
+        label,
+        key=None,
+        on_change=None,
+        args=None,
+        kwargs=None,
+        help=None,
+    ) -> bool:
         """Display a button widget.
 
         Parameters
@@ -60,14 +68,25 @@ class ButtonMixin:
         """
         if key is None:
             key = label
-        return self.dg._button(label, key, help, is_form_submitter=False)
+        return self.dg._button(
+            label,
+            key,
+            help=help,
+            is_form_submitter=False,
+            on_change=on_change,
+            args=args,
+            kwargs=kwargs,
+        )
 
     def _button(
         self,
         label: str,
-        key: Optional[str],
+        key: str,
         help: Optional[str],
         is_form_submitter: bool,
+        on_change=None,
+        args=None,
+        kwargs=None,
     ) -> "streamlit.delta_generator.DeltaGenerator":
         button_proto = ButtonProto()
 

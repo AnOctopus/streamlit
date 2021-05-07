@@ -49,14 +49,15 @@ class SliderMixin:
         label: str,
         min_value=None,
         max_value=None,
-        value: Optional[Value[T]] = None,
+        value=None,
         step=None,
         format=None,
         on_change=None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
-        key: Optional[str] = None,
-    ) -> Value[T]:
+        args=None,
+        kwargs=None,
+        key=None,
+        help: Optional[str] = None,
+    ):
         """Display a slider widget.
 
         This supports int, float, date, time, and datetime types.

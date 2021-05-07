@@ -34,6 +34,7 @@ class TextWidgetsMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ):
         """Display a single-line text input widget.
 
@@ -133,6 +134,7 @@ class TextWidgetsMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ):
         """Display a multi-line text input widget.
 

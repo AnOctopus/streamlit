@@ -34,6 +34,7 @@ class MultiSelectMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ):
         """Display a multiselect widget.
         The multiselect widget starts as empty.

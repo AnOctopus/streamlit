@@ -39,7 +39,11 @@ def register_widget(
     element_proto: Any,
     user_key: Optional[str] = None,
     widget_func_name: Optional[str] = None,
-) -> Optional[Any]:
+    on_change_handler: Optional[Callable[..., None]] = None,
+    deserializer: Callable[[Any], Any] = lambda x: x,
+    args: Optional[Tuple[Any, ...]] = None,
+    kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
     """Register a widget with Streamlit, and return its current ui_value.
     NOTE: This function should be called after the proto has been filled.
 
@@ -57,16 +61,27 @@ def register_widget(
         its element_type. Custom components are a special case: they all have
         the element_type "component_instance", but are instantiated with
         dynamically-named functions.
+    on_change_handler: callable or None
+        An optional callback invoked when the widget's value changes.
+    deserializer: callable
+        Called to convert a widget's protobuf value to the value returned by
+        its st.foo function.
 
     Returns
     -------
-    ui_value : Any or None
+    ui_value : any
         The value of the widget set by the client or
         the default value passed. If the report context
         doesn't exist, None will be returned.
 
     """
-    widget_id = _get_widget_id(element_type, element_proto, user_key)
+    if user_key is not None:
+        key: Optional[str] = user_key
+    elif hasattr(element_proto, "label"):
+        key = element_proto.label
+    else:
+        key = None
+    widget_id = _get_widget_id(element_type, element_proto, key)
     element_proto.id = widget_id
 
     ctx = report_thread.get_report_ctx()
@@ -74,7 +89,7 @@ def register_widget(
         # Early-out if we're not running inside a ReportThread (which
         # probably means we're running as a "bare" Python script, and
         # not via `streamlit run`).
-        return None
+        return deserializer(None)
 
     # Register the widget, and ensure another widget with the same id hasn't
     # already been registered.
@@ -87,8 +102,15 @@ def register_widget(
             )
         )
 
+    if on_change_handler is not None:
+        ctx.widgets.add_callback(
+            element_proto.id, deserializer, on_change_handler, args, kwargs
+        )
+    else:
+        ctx.widgets.add_deserializer(element_proto.id, deserializer)
+
     # Return the widget's current value.
-    return ctx.widgets.get_widget_value(widget_id)
+    return deserializer(ctx.widgets.get_widget_value(widget_id))
 
 
 def coalesce_widget_states(
@@ -229,7 +251,7 @@ class WidgetStateManager(object):
         """Removes items in state that aren't present in a set of provided
         widget_ids.
         """
-        self._state = {k: v for k, v in self._state.items() if k in widget_ids}
+        self._state = {k: v for k, v in self._widget_states.items() if k in widget_ids}
 
     def reset_triggers(self) -> None:
         """Remove all trigger values in our state dictionary.
@@ -267,7 +289,6 @@ def beta_widget_value(key: str) -> Any:
     """
     import streamlit.report_thread as ReportThread
     from streamlit.server.server import Server
-    import streamlit.elements.utils as utils
 
     ctx = ReportThread.get_report_ctx()
 
@@ -277,7 +298,7 @@ def beta_widget_value(key: str) -> Any:
     this_session = Server.get_current().get_session_by_id(ctx.session_id)
     widget_states: WidgetStateManager = this_session.get_widget_states()
 
-    widget_id = utils._get_widget_id("", None, key)
+    widget_id = _get_widget_id("", None, key)
     deserializer = widget_states._widget_deserializers.get(widget_id, lambda x: x)
     widget_value = widget_states.get_widget_value(widget_id)
     if widget_value is None:
@@ -289,12 +310,11 @@ def beta_widget_value(key: str) -> Any:
 def widget_values() -> Dict[str, Any]:
     import streamlit.report_thread as ReportThread
     from streamlit.server.server import Server
-    import streamlit.elements.utils as utils
 
     ctx = ReportThread.get_report_ctx()
 
     if ctx is None:
-        return None
+        return {}
 
     this_session = Server.get_current().get_session_by_id(ctx.session_id)
     widget_states: WidgetStateManager = this_session.get_widget_states()
@@ -330,3 +350,18 @@ def _build_duplicate_widget_message(
         )
 
     return message.strip("\n").format(widget_type=widget_func_name, user_key=user_key)
+
+
+def _get_widget_id(
+    element_type: str, element_proto: Any, user_key: Optional[str] = None
+) -> str:
+    """Generate the widget id for the given widget.
+    Does not mutate the element_proto object.
+    """
+    if user_key is not None:
+        widget_id = user_key
+    else:
+        # Identify the widget with a hash of type + contents
+        widget_id = str(hash((element_type, element_proto.SerializeToString())))
+
+    return widget_id

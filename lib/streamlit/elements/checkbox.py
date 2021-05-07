@@ -30,6 +30,7 @@ class CheckboxMixin:
         on_change=None,
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
+        help: Optional[str] = None,
     ) -> bool:
         """Display a checkbox widget.
 
