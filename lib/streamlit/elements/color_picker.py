@@ -63,11 +63,10 @@ class ColorPickerMixin:
         >>> st.write('The current color is', color)
 
         """
-        if key is None:
-            key = label
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
+        # TODO: implement this widget for state
 
         if value is None:
             # Value not passed in, try to get it from state

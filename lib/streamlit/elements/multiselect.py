@@ -86,9 +86,6 @@ class MultiSelectMixin:
         """
         options: List[str] = ensure_iterable(options)
 
-        if key is None:
-            key = label
-
         values: Optional[Set[str]] = None if default is None else set(default)
         state = get_session_state()
         force_set_value = values is not None or state.is_new_value(key)

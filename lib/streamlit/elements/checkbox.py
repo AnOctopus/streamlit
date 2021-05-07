@@ -63,8 +63,6 @@ class CheckboxMixin:
         ...     st.write('Great!')
 
         """
-        if key is None:
-            key = label
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)

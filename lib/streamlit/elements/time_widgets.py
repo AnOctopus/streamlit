@@ -64,9 +64,6 @@ class TimeWidgetsMixin:
         >>> st.write('Alarm is set for', t)
 
         """
-        if key is None:
-            key = label
-
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
@@ -165,9 +162,6 @@ class TimeWidgetsMixin:
         >>> st.write('Your birthday is:', d)
 
         """
-        if key is None:
-            key = label
-
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 

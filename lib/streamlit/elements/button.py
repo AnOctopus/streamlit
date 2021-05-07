@@ -66,8 +66,6 @@ class ButtonMixin:
         ...     st.write('Goodbye')
 
         """
-        if key is None:
-            key = label
         return self.dg._button(
             label,
             key,
@@ -87,7 +85,7 @@ class ButtonMixin:
         on_change=None,
         args=None,
         kwargs=None,
-    ) -> "streamlit.delta_generator.DeltaGenerator":
+    ) -> bool:
         button_proto = ButtonProto()
 
         # It doesn't make sense to create a button inside a form (except

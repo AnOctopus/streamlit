@@ -81,9 +81,6 @@ class RadioMixin:
         """
         options = ensure_iterable(options)
 
-        if key is None:
-            key = label
-
         if value is None and index is not None:
             value = options[index]
 

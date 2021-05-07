@@ -76,14 +76,9 @@ class SelectboxMixin:
         """
         options = ensure_iterable(options)
 
-        print(f"initally passed in value={value}, index={index}")
-
         # legacy api compatibility
         if value is None and index is not None:
             value = options[index]
-
-        if key is None:
-            key = label
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
@@ -100,11 +95,6 @@ class SelectboxMixin:
             )
 
         state[key] = value
-
-        # if len(options) > 0 and not 0 <= index < len(options):
-        #     raise StreamlitAPIException(
-        #         "Selectbox index must be between 0 and length of options"
-        #     )
 
         index = options.index(value)
 

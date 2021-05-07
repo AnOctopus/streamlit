@@ -82,9 +82,6 @@ class NumberInputMixin:
         >>> number = st.number_input('Insert a number')
         >>> st.write('The current number is ', number)
         """
-        if key is None:
-            key = label
-
         # Ensure that all arguments are of the same type.
         argsl = [min_value, max_value, value, step]
 

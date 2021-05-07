@@ -71,9 +71,6 @@ class TextWidgetsMixin:
         >>> st.write('The current movie title is', title)
 
         """
-        if key is None:
-            key = label
-
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
@@ -176,9 +173,6 @@ class TextWidgetsMixin:
         >>> st.write('Sentiment:', run_sentiment_analysis(txt))
 
         """
-        if key is None:
-            key = label
-
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
