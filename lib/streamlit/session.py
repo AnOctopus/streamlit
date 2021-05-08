@@ -100,13 +100,14 @@ class SessionState(MutableMapping):
         try:
             return self._new_state[key]
         except KeyError:
-            try:
-                return beta_widget_value(key)
-            except KeyError:
+            value = beta_widget_value(key)
+            if value is not None:
+                return value
+            else:
                 try:
                     return self._old_state[key]
                 except KeyError:
-                    raise KeyError
+                    raise KeyError(key)
 
     def __setitem__(self, key: str, value: Any) -> None:
         ctx = ReportThread.get_report_ctx()
