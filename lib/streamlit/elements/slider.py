@@ -36,7 +36,7 @@ from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 T = TypeVar("T", int, float, date, time, datetime)
 
@@ -144,6 +144,12 @@ class SliderMixin:
         >>> st.write("Start time:", start_time)
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)

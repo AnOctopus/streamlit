@@ -20,7 +20,7 @@ from streamlit.proto.MultiSelect_pb2 import MultiSelect as MultiSelectProto
 from streamlit.type_util import is_type, ensure_iterable
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 
 class MultiSelectMixin:
@@ -84,6 +84,13 @@ class MultiSelectMixin:
            `GitHub issue #1059 <https://github.com/streamlit/streamlit/issues/1059>`_ for updates on the issue.
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
+
         options: List[str] = ensure_iterable(options)
 
         values: Optional[Set[str]] = None if default is None else set(default)

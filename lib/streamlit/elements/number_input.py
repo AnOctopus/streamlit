@@ -21,7 +21,7 @@ from streamlit.js_number import JSNumber, JSNumberBoundsException
 from streamlit.proto.NumberInput_pb2 import NumberInput as NumberInputProto
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget, NoValue
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 
 class NumberInputMixin:
@@ -82,6 +82,13 @@ class NumberInputMixin:
         >>> number = st.number_input('Insert a number')
         >>> st.write('The current number is ', number)
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
+
         # Ensure that all arguments are of the same type.
         argsl = [min_value, max_value, value, step]
 

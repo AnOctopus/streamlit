@@ -186,7 +186,13 @@ class FormMixin:
         block_dg._form_data = FormData(form_id)
         return block_dg
 
-    def form_submit_button(self, label="Submit"):
+    def form_submit_button(
+        self,
+        label="Submit",
+        on_change=None,
+        args=None,
+        kwargs=None,
+    ):
         """Display a form submit button.
 
         When this button is clicked, all widget values inside the form will be
@@ -214,6 +220,9 @@ class FormMixin:
             key=f"FormSubmitter:{current_form_id(self.dg)}",
             help=None,
             is_form_submitter=True,
+            on_change=on_change,
+            args=args,
+            kwargs=kwargs,
         )
 
     @property

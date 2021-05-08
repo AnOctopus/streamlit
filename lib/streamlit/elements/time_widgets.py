@@ -21,7 +21,7 @@ from streamlit.proto.DateInput_pb2 import DateInput as DateInputProto
 from streamlit.proto.TimeInput_pb2 import TimeInput as TimeInputProto
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 
 class TimeWidgetsMixin:
@@ -64,6 +64,13 @@ class TimeWidgetsMixin:
         >>> st.write('Alarm is set for', t)
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
+
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
@@ -162,6 +169,13 @@ class TimeWidgetsMixin:
         >>> st.write('Your birthday is:', d)
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
+
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 

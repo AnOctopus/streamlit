@@ -20,7 +20,7 @@ from streamlit.proto.Radio_pb2 import Radio as RadioProto
 from streamlit.type_util import ensure_iterable
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget, NoValue
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 
 class RadioMixin:
@@ -79,6 +79,13 @@ class RadioMixin:
         ...     st.write("You didn\'t select comedy.")
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
+
         options = ensure_iterable(options)
 
         if value is None and index is not None:

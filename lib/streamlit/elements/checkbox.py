@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from streamlit.errors import StreamlitAPIException
 from typing import cast, Optional, Tuple, Dict, Any
 
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
 from streamlit.widgets import register_widget
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 from streamlit.session import get_session_state
 
 
@@ -63,6 +64,12 @@ class CheckboxMixin:
         ...     st.write('Great!')
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)

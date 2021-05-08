@@ -20,7 +20,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.ColorPicker_pb2 import ColorPicker as ColorPickerProto
 from streamlit.session import get_session_state
 from streamlit.widgets import register_widget
-from .form import current_form_id
+from .form import current_form_id, is_in_form
 
 
 class ColorPickerMixin:
@@ -63,6 +63,12 @@ class ColorPickerMixin:
         >>> st.write('The current color is', color)
 
         """
+        if (
+            streamlit._is_running_with_streamlit
+            and is_in_form(self.dg)
+            and on_change is not None
+        ):
+            raise StreamlitAPIException
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
