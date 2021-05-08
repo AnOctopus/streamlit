@@ -36,7 +36,7 @@ class SelectSliderMixin:
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         help: Optional[str] = None,
-    ):
+    ) -> Any:
         """
         Display a slider widget to select items from a list.
 

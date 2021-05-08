@@ -57,7 +57,7 @@ class SliderMixin:
         kwargs=None,
         key=None,
         help: Optional[str] = None,
-    ):
+    ) -> Value[T]:
         """Display a slider widget.
 
         This supports int, float, date, time, and datetime types.

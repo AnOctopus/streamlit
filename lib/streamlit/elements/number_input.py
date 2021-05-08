@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numbers
-from typing import cast, Optional, Tuple, Any, Dict
+from typing import cast, Optional, Tuple, Any, Dict, Union
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -38,7 +38,7 @@ class NumberInputMixin:
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         help: Optional[str] = None,
-    ):
+    ) -> Union[int, float]:
         """Display a numeric input widget.
 
         Parameters

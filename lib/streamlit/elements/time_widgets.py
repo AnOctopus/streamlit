@@ -34,7 +34,7 @@ class TimeWidgetsMixin:
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         help: Optional[str] = None,
-    ):
+    ) -> time:
         """Display a time input widget.
 
         Parameters
@@ -125,7 +125,7 @@ class TimeWidgetsMixin:
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         help: Optional[str] = None,
-    ):
+    ) -> date:
         """Display a date input widget.
 
         Parameters

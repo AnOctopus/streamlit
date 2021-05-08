@@ -36,7 +36,7 @@ class SelectboxMixin:
         args: Optional[Tuple[Any, ...]] = None,
         kwargs: Optional[Dict[str, Any]] = None,
         help: Optional[str] = None,
-    ):
+    ) -> str:
         """Display a select widget.
 
         Parameters
