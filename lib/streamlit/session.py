@@ -44,7 +44,10 @@ class SessionState(MutableMapping):
         self._old_state: Dict[str, Any] = {}
 
     def __getattr__(self, key: str) -> Optional[Any]:
-        return self[key]
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
 
     def get_new_value(self, key: str) -> Optional[Any]:
         return self._new_state.get(key, None)
@@ -94,7 +97,7 @@ class SessionState(MutableMapping):
             self.init_value(key, value)
 
     def __str__(self):
-        return str(f"_new_state={self._new_state}, _old_state={self._old_state}")
+        return str({**self._old_state, **self._new_state})
 
     def __getitem__(self, key: str) -> Any:
         try:

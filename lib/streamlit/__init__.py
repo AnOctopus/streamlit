@@ -184,11 +184,11 @@ class LazySessionState:
 
     def __getattr__(self, k: str) -> Any:
         state = get_session_state()
-        return state[k]
+        return state.__getattr__(k)
 
     def __setattr__(self, k: str, v: Any) -> None:
         state = get_session_state()
-        state[k] = v
+        state.__setattr__(k, v)
 
     def __getitem__(self, k: str) -> Any:
         state = get_session_state()
