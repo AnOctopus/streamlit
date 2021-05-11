@@ -35,7 +35,7 @@ from streamlit.js_number import JSNumber
 from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
 from streamlit.session import get_session_state
-from streamlit.widgets import register_widget
+from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 
 T = TypeVar("T", int, float, date, time, datetime)
@@ -152,16 +152,28 @@ class SliderMixin:
             raise StreamlitAPIException
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
+        if key is None:
+            key = f"internal:{label}"
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        # Value not in state, use default
-        if value is None:
-            value = min_value if min_value is not None else 0
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            else:
+                if value is None:
+                    value = min_value if min_value is not None else 0
 
-        state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    # default
+                    value = min_value if min_value is not None else 0
+
+                state[key] = value
+            else:
+                value = v
 
         SUPPORTED_TYPES = {
             int: SliderProto.INT,
@@ -172,6 +184,7 @@ class SliderMixin:
         }
         TIMELIKE_TYPES = (SliderProto.DATETIME, SliderProto.TIME, SliderProto.DATE)
 
+        print(f"value={value}")
         # Ensure that the value is either a single value or a range of values.
         single_value = isinstance(value, tuple(SUPPORTED_TYPES.keys()))
         range_value = isinstance(value, (list, tuple)) and len(value) in (0, 1, 2)
@@ -453,175 +466,9 @@ class SliderMixin:
             kwargs=kwargs,
         )
         self.dg._enqueue("slider", slider_proto)
-        return value
+        return value[0] if single_value else tuple(value)
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
         """Get our DeltaGenerator."""
         return cast("streamlit.delta_generator.DeltaGenerator", self)
-
-
-@dataclass(frozen=True)
-class SingleValue(Generic[T]):
-    value: T
-
-    def to_list(self) -> List[T]:
-        return [self.value]
-
-
-@dataclass(frozen=True)
-class RangeValue(Generic[T]):
-    lower: T
-    upper: T
-
-    def to_list(self) -> List[T]:
-        return [self.lower, self.upper]
-
-
-V = Union[SingleValue[T], RangeValue[T]]
-
-
-@dataclass
-class IntSlider:
-    label: str
-    key: str
-    min_value: int
-    max_value: int
-    value: V[int]
-    force_set_value: bool
-    step: int
-    format: str
-    on_change: Optional[Callable[..., Any]]
-    data_type: Any = SliderProto.INT
-
-    def __init__(
-        self,
-        label: str,
-        min_value: int = 0,
-        max_value: int = 100,
-        value: Optional[V[int]] = None,
-        step: int = 1,
-        format: str = "%d",
-        on_change=None,
-        key: Optional[str] = None,
-    ):
-        self.label = label
-        if key is not None:
-            self.key = key
-        else:
-            self.key = label
-
-        try:
-            self.min_value = min(min_value, max_value)
-            self.max_value = max(min_value, max_value)
-            JSNumber.validate_int_bounds(min_value, "`min_value`")
-            JSNumber.validate_int_bounds(max_value, "`max_value`")
-        except JSNumberBoundsException as e:
-            raise StreamlitAPIException(str(e))
-
-        self.step = step
-        self.format = format
-
-        state = get_session_state()
-        # true if value was passed in, or will be gotten from the new part of state
-        self.force_set_value = value is not None or state.is_new_value(self.key)
-
-        # Value not passed in, try to get it from state
-        if value is None:
-            value = state[self.key]
-        # Value not in state, use default
-        if value is None:
-            value = SingleValue(self.min_value)
-
-        self.value = value
-        if on_change is not None:
-            self.on_change = on_change
-
-    def to_protobuf(self) -> SliderProto:
-        slider_proto = SliderProto()
-        slider_proto.label = self.label
-        slider_proto.format = self.format
-        slider_proto.default[:] = self.value.to_list()
-        slider_proto.min = self.min_value
-        slider_proto.max = self.max_value
-        slider_proto.step = self.step
-        slider_proto.data_type = self.data_type
-        slider_proto.options[:] = []
-        if self.force_set_value:
-            slider_proto.value[:] = self.value.to_list()
-            slider_proto.valueSet = True
-
-        return slider_proto
-
-
-@dataclass
-class FloatSlider:
-    label: str
-    key: str
-    min_value: float
-    max_value: float
-    value: V[float]
-    force_set_value: bool
-    step: float
-    format: str
-    on_change: Optional[Callable[..., Any]]
-    data_type: Any = SliderProto.FLOAT
-
-    def __init__(
-        self,
-        label: str,
-        min_value: float = 0.0,
-        max_value: float = 1.0,
-        value: Optional[V[float]] = None,
-        step: float = 0.01,
-        format: str = "%0.2f",
-        on_change=None,
-        key: Optional[str] = None,
-    ):
-        self.label = label
-        if key is not None:
-            self.key = key
-        else:
-            self.key = label
-
-        try:
-            self.min_value = min(min_value, max_value)
-            self.max_value = max(min_value, max_value)
-            JSNumber.validate_float_bounds(min_value, "`min_value`")
-            JSNumber.validate_float_bounds(max_value, "`max_value`")
-        except JSNumberBoundsException as e:
-            raise StreamlitAPIException(str(e))
-
-        self.step = step
-        self.format = format
-
-        state = get_session_state()
-        # true if value was passed in, or will be gotten from the new part of state
-        self.force_set_value = value is not None or state.is_new_value(self.key)
-
-        # Value not passed in, try to get it from state
-        if value is None:
-            value = state[self.key]
-        # Value not in state, use default
-        if value is None:
-            value = SingleValue(self.min_value)
-
-        self.value = value
-        if on_change is not None:
-            self.on_change = on_change
-
-    def to_protobuf(self) -> SliderProto:
-        slider_proto = SliderProto()
-        slider_proto.label = self.label
-        slider_proto.format = self.format
-        slider_proto.default[:] = self.value.to_list()
-        slider_proto.min = self.min_value
-        slider_proto.max = self.max_value
-        slider_proto.step = self.step
-        slider_proto.data_type = self.data_type
-        slider_proto.options[:] = []
-        if self.force_set_value:
-            slider_proto.value[:] = self.value.to_list()
-            slider_proto.valueSet = True
-
-        return slider_proto

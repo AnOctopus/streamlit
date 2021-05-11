@@ -103,6 +103,9 @@ class SelectSliderMixin:
         ):
             raise StreamlitAPIException
 
+        if key is None:
+            key = f"internal:{label}"
+
         options = ensure_iterable(options)
 
         state = get_session_state()

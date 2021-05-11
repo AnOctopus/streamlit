@@ -184,6 +184,8 @@ class LazySessionState:
 
     def __getattr__(self, k: str) -> Any:
         state = get_session_state()
+        if k.startswith("internal:"):
+            raise AttributeError
         return state.__getattr__(k)
 
     def __setattr__(self, k: str, v: Any) -> None:
@@ -192,6 +194,8 @@ class LazySessionState:
 
     def __getitem__(self, k: str) -> Any:
         state = get_session_state()
+        if k.startswith("internal:"):
+            raise KeyError
         return state[k]
 
     def __setitem__(self, k: str, v: Any) -> None:

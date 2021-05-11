@@ -81,6 +81,9 @@ class SelectboxMixin:
         ):
             raise StreamlitAPIException
 
+        if key is None:
+            key = f"internal:{label}"
+
         options = ensure_iterable(options)
 
         # legacy api compatibility

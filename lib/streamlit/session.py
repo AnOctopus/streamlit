@@ -97,9 +97,26 @@ class SessionState(MutableMapping):
             self.init_value(key, value)
 
     def __str__(self):
-        return str({**self._old_state, **self._new_state})
+        old = dict(
+            [
+                (k, v)
+                for k, v in self._old_state.items()
+                if not k.startswith("internal:")
+            ]
+        )
+        new = dict(
+            [
+                (k, v)
+                for k, v in self._new_state.items()
+                if not k.startswith("internal:")
+            ]
+        )
+        merged = {**old, **new}
+        return str(merged)
 
     def __getitem__(self, key: str) -> Any:
+        if key is None:
+            raise KeyError(None)
         try:
             return self._new_state[key]
         except KeyError:

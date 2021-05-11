@@ -91,8 +91,11 @@ class RadioMixin:
         if value is None and index is not None:
             value = options[index]
 
+        if key is None:
+            key = f"internal:{label}"
+
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
 
         if value is None:
             # Value not passed in, try to get it from state

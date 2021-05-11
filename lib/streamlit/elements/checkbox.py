@@ -71,17 +71,22 @@ class CheckboxMixin:
         ):
             raise StreamlitAPIException
 
+        if key is None:
+            internal_key = f"internal:{label}"
+        else:
+            internal_key = key
+
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(internal_key)
 
         if value is None:
             # Value not passed in, try to get it from state
-            value = state.get(key, None)
+            value = state.get(internal_key, None)
         # Value not in state, use default
         if value is None:
             value = False
 
-        state[key] = value
+        state[internal_key] = value
 
         value = bool(value)
 
@@ -101,7 +106,7 @@ class CheckboxMixin:
         register_widget(
             "checkbox",
             checkbox_proto,
-            user_key=key,
+            user_key=internal_key,
             on_change_handler=on_change,
             args=args,
             kwargs=kwargs,

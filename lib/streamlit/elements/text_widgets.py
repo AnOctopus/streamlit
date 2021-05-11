@@ -78,6 +78,9 @@ class TextWidgetsMixin:
         ):
             raise StreamlitAPIException
 
+        if key is None:
+            key = f"internal:{label}"
+
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)
 
@@ -186,6 +189,9 @@ class TextWidgetsMixin:
             and on_change is not None
         ):
             raise StreamlitAPIException
+
+        if key is None:
+            key = f"internal:{label}"
 
         state = get_session_state()
         force_set_value = value is not None or state.is_new_value(key)

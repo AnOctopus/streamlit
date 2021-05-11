@@ -75,13 +75,7 @@ def register_widget(
         doesn't exist, None will be returned.
 
     """
-    if user_key is not None:
-        key: Optional[str] = user_key
-    elif hasattr(element_proto, "label"):
-        key = element_proto.label
-    else:
-        key = None
-    widget_id = _get_widget_id(element_type, element_proto, key)
+    widget_id = _get_widget_id(element_type, element_proto, user_key)
     element_proto.id = widget_id
 
     ctx = report_thread.get_report_ctx()
@@ -294,13 +288,14 @@ def beta_widget_value(key: str) -> Any:
 
     if ctx is None:
         return None
+    if key is None:
+        return None
 
     this_session = Server.get_current().get_session_by_id(ctx.session_id)
     widget_states: WidgetStateManager = this_session.get_widget_states()
 
-    widget_id = _get_widget_id("", None, key)
-    deserializer = widget_states._widget_deserializers.get(widget_id, lambda x: x)
-    widget_value = widget_states.get_widget_value(widget_id)
+    deserializer = widget_states._widget_deserializers.get(key, lambda x: x)
+    widget_value = widget_states.get_widget_value(key)
     if widget_value is None:
         return None
     else:
