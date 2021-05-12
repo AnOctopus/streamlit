@@ -14,9 +14,6 @@
 
 from datetime import date, time, datetime, timedelta, timezone
 from typing import (
-    Any,
-    Callable,
-    List,
     Sequence,
     cast,
     Optional,
@@ -151,6 +148,16 @@ class SliderMixin:
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
         if key is None:
             key = f"internal:{label}"
+
+        if (
+            value is not None
+            and state.is_new_value(key)
+            and beta_widget_value(key) is None
+        ):
+            streamlit.warning(
+                """Created a widget with a passed in default value, whose widget value was already set through
+            the session state api. The results of doing this are undefined behavior."""
+            )
 
         default_value = min_value if min_value is not None else 0
 

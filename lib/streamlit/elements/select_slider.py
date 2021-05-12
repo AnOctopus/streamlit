@@ -113,6 +113,15 @@ class SelectSliderMixin:
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
 
+        if (
+            value is not None
+            and state.is_new_value(key)
+            and beta_widget_value(key) is None
+        ):
+            streamlit.warning(
+                """Created a widget with a passed in default value, whose widget value was already set through
+            the session state api. The results of doing this are undefined behavior."""
+            )
         default_value = options[0]
 
         if is_in_form(self.dg):
