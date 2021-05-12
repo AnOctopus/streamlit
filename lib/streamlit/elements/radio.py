@@ -97,7 +97,7 @@ class RadioMixin:
             key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = state.is_new_value(key)
+        force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
 
         default_value = options[0]
 

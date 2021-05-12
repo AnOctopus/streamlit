@@ -111,7 +111,7 @@ class SelectSliderMixin:
         options = ensure_iterable(options)
 
         state = get_session_state()
-        force_set_value = state.is_new_value(key)
+        force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
 
         # TODO have an actual default
         default_value = None

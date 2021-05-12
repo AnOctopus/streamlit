@@ -113,7 +113,7 @@ class NumberInputMixin:
             )
 
         state = get_session_state()
-        force_set_value = state.is_new_value(key)
+        force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
         if min_value is not None:
             default_value = min_value
         elif int_args and float_args:

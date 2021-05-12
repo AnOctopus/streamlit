@@ -100,7 +100,7 @@ class MultiSelectMixin:
 
         value: Set[str] = set() if default is None else set(default)
         state = get_session_state()
-        force_set_value = state.is_new_value(key)
+        force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
         default_value = set()
 
         if is_in_form(self.dg):
