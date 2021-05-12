@@ -20,14 +20,8 @@ from typing import (
     Sequence,
     cast,
     Optional,
-    TypeVar,
     Union,
-    Generic,
-    Tuple,
-    Dict,
 )
-
-from dataclasses import dataclass
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -38,7 +32,7 @@ from streamlit.session import get_session_state
 from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 
-T = TypeVar("T", int, float, date, time, datetime)
+T = Union[int, float, date, time, datetime]
 
 Value = Union[T, Sequence[T]]
 
@@ -57,7 +51,7 @@ class SliderMixin:
         kwargs=None,
         key=None,
         help: Optional[str] = None,
-    ) -> Value[T]:
+    ) -> Value:
         """Display a slider widget.
 
         This supports int, float, date, time, and datetime types.
@@ -149,27 +143,30 @@ class SliderMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
 
         state = get_session_state()
         force_set_value = state.is_new_value(key)
         if key is None:
             key = f"internal:{label}"
 
+        default_value = min_value if min_value is not None else 0
+
         if is_in_form(self.dg):
             v = beta_widget_value(key)
             if v is not None:
                 value = v
-            else:
-                if value is None:
-                    value = min_value if min_value is not None else 0
+            elif value is None:
+                value = default_value
 
+            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
-                    # default
-                    value = min_value if min_value is not None else 0
+                    value = default_value
 
                 state[key] = value
             else:

@@ -68,10 +68,15 @@ class ColorPickerMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
+
+        if key is None:
+            key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
         # TODO: implement this widget for state
 
         if value is None:

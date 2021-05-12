@@ -19,7 +19,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.TextArea_pb2 import TextArea as TextAreaProto
 from streamlit.proto.TextInput_pb2 import TextInput as TextInputProto
 from streamlit.session import get_session_state
-from streamlit.widgets import register_widget
+from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 
 
@@ -82,15 +82,27 @@ class TextWidgetsMixin:
             key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        if value is None:
-            value = ""
+        default_value = ""
 
-        state[key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         text_input_proto = TextInputProto()
         text_input_proto.label = label
@@ -188,21 +200,35 @@ class TextWidgetsMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
 
         if key is None:
             key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        if value is None:
-            value = ""
+        default_value = ""
 
-        state[key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         text_area_proto = TextAreaProto()
         text_area_proto.label = label

@@ -19,7 +19,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.Radio_pb2 import Radio as RadioProto
 from streamlit.type_util import ensure_iterable
 from streamlit.session import get_session_state
-from streamlit.widgets import register_widget, NoValue
+from streamlit.widgets import register_widget, NoValue, beta_widget_value
 from .form import current_form_id, is_in_form
 
 
@@ -84,7 +84,9 @@ class RadioMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
 
         options = ensure_iterable(options)
 
@@ -97,13 +99,25 @@ class RadioMixin:
         state = get_session_state()
         force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        if value is None:
-            value = options[0]
+        default_value = options[0]
 
-        state[key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         index = options.index(value)
         if not isinstance(index, int):

@@ -17,7 +17,7 @@ from typing import cast, Optional, Tuple, Dict, Any
 
 import streamlit
 from streamlit.proto.Checkbox_pb2 import Checkbox as CheckboxProto
-from streamlit.widgets import register_widget
+from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 from streamlit.session import get_session_state
 
@@ -72,21 +72,30 @@ class CheckboxMixin:
             raise StreamlitAPIException
 
         if key is None:
-            internal_key = f"internal:{label}"
-        else:
-            internal_key = key
+            key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = state.is_new_value(internal_key)
+        force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(internal_key, None)
-        # Value not in state, use default
-        if value is None:
-            value = False
+        default_value = False
 
-        state[internal_key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         value = bool(value)
 
@@ -106,7 +115,7 @@ class CheckboxMixin:
         register_widget(
             "checkbox",
             checkbox_proto,
-            user_key=internal_key,
+            user_key=key,
             on_change_handler=on_change,
             args=args,
             kwargs=kwargs,

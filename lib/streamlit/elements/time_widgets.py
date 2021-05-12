@@ -20,7 +20,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.DateInput_pb2 import DateInput as DateInputProto
 from streamlit.proto.TimeInput_pb2 import TimeInput as TimeInputProto
 from streamlit.session import get_session_state
-from streamlit.widgets import register_widget
+from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 
 
@@ -75,15 +75,27 @@ class TimeWidgetsMixin:
             key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        if value is None:
-            value = datetime.now().time()
+        default_value = datetime.now().time()
 
-        state[key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         # Ensure that the value is either datetime/time
         if not isinstance(value, datetime) and not isinstance(value, time):
@@ -177,21 +189,35 @@ class TimeWidgetsMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
 
         if key is None:
             key = f"internal:{label}"
 
         state = get_session_state()
-        force_set_value = value is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
 
-        if value is None:
-            # Value not passed in, try to get it from state
-            value = state.get(key, None)
-        if value is None:
-            value = datetime.now().date()
+        default_value = datetime.now().date()
 
-        state[key] = value
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
+
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         single_value = isinstance(value, (date, datetime))
         range_value = isinstance(value, (list, tuple)) and len(value) in (0, 1, 2)

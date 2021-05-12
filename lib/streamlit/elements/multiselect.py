@@ -19,7 +19,7 @@ from streamlit.errors import StreamlitAPIException
 from streamlit.proto.MultiSelect_pb2 import MultiSelect as MultiSelectProto
 from streamlit.type_util import is_type, ensure_iterable
 from streamlit.session import get_session_state
-from streamlit.widgets import register_widget
+from streamlit.widgets import register_widget, beta_widget_value
 from .form import current_form_id, is_in_form
 
 
@@ -89,23 +89,37 @@ class MultiSelectMixin:
             and is_in_form(self.dg)
             and on_change is not None
         ):
-            raise StreamlitAPIException
+            raise StreamlitAPIException(
+                "Callbacks are not allowed on widgets in forms; put them on the submit button instead"
+            )
+
+        if key is None:
+            key = f"internal:{label}"
 
         options: List[str] = ensure_iterable(options)
 
-        values: Optional[Set[str]] = None if default is None else set(default)
+        value: Set[str] = set() if default is None else set(default)
         state = get_session_state()
-        force_set_value = values is not None or state.is_new_value(key)
+        force_set_value = state.is_new_value(key)
+        default_value = set()
 
-        if values is None:
-            # Value not passed in, try to get it from state
-            values = state.get(key, None)
-        # Value not in state, use default
-        if values is None:
-            # no-op, included to keep the structure the same as other widgets
-            values = None
+        if is_in_form(self.dg):
+            v = beta_widget_value(key)
+            if v is not None:
+                value = v
+            elif value is None:
+                value = default_value
 
-        state[key] = values
+            state[key] = value
+        else:
+            v = state.get(key, None)
+            if v is None:
+                if value is None:
+                    value = default_value
+
+                state[key] = value
+            else:
+                value = v
 
         # Perform validation checks and return indices base on the default values.
         def _check_and_convert_to_indices(
@@ -135,7 +149,7 @@ class MultiSelectMixin:
 
             return [options.index(value) for value in default_values]
 
-        indices = _check_and_convert_to_indices(options, values)
+        indices = _check_and_convert_to_indices(options, value)
         multiselect_proto = MultiSelectProto()
         multiselect_proto.label = label
         default_value_indices = [] if indices is None else indices
@@ -151,7 +165,7 @@ class MultiSelectMixin:
         # TODO(amanda): file ticket for supporting sets in addition to lists, and use sets internally for semantic clarity?
 
         def deserialize_multiselect(ui_value: Any) -> List[str]:
-            current_value = ui_value.data if ui_value is not None else values
+            current_value = ui_value.data if ui_value is not None else value
             return [options[i] for i in current_value]
 
         register_widget(
@@ -163,8 +177,8 @@ class MultiSelectMixin:
             kwargs=kwargs,
             deserializer=deserialize_multiselect,
         )
-        self.dg._enqueue("multiselect", multiselect_proto, values)
-        return values
+        self.dg._enqueue("multiselect", multiselect_proto, value)
+        return list(value)
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
