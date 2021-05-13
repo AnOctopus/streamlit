@@ -60,6 +60,10 @@ class SessionState(MutableMapping):
         merged = {**self._old_state, **widgets, **self._new_state}
         return merged
 
+    def _dump(self) -> str:
+        widgets = widget_values()
+        return f"old={self._old_state}, widgets={widgets}, new={self._new_state}"
+
     def __len__(self) -> int:
         merged = self._get_merged()
         return len(merged)

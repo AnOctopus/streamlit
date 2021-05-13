@@ -101,17 +101,15 @@ class TextWidgetsMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         text_input_proto = TextInputProto()
         text_input_proto.label = label
@@ -236,17 +234,15 @@ class TextWidgetsMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         text_area_proto = TextAreaProto()
         text_area_proto.label = label

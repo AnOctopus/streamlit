@@ -130,17 +130,15 @@ class SelectSliderMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         if len(options) == 0:
             raise StreamlitAPIException("The `options` argument needs to be non-empty")

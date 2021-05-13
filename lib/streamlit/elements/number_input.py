@@ -139,17 +139,15 @@ class NumberInputMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         int_value = isinstance(value, numbers.Integral)
         float_value = isinstance(value, float)

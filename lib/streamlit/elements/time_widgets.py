@@ -94,17 +94,15 @@ class TimeWidgetsMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         # Ensure that the value is either datetime/time
         if not isinstance(value, datetime) and not isinstance(value, time):
@@ -225,17 +223,15 @@ class TimeWidgetsMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         single_value = isinstance(value, (date, datetime))
         range_value = isinstance(value, (list, tuple)) and len(value) in (0, 1, 2)

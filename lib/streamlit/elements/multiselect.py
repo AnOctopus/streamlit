@@ -119,17 +119,15 @@ class MultiSelectMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         # Perform validation checks and return indices base on the default values.
         def _check_and_convert_to_indices(

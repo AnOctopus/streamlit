@@ -159,6 +159,17 @@ class SliderMixin:
             the session state api. The results of doing this are undefined behavior."""
             )
 
+        # in form | widget value set | state value set | constructor value set || value to return and put in state
+        #   Yes   |      No          |                 |          No           ||           default value
+        #   Yes   |      No          |                 |          Yes          ||           constructor value
+        #   Yes   |      Yes         |                 |                       ||           widget value
+        #   No    |      No          |        No       |          No           ||           default value
+        #   No    |      No          |        No       |          Yes          ||           constructor value
+        #   No    |      No          |        Yes      |          No           ||           state value
+        #   No    |      No          |        Yes      |          Yes          ||           display warning, do whatever
+        #   No    |      Yes         |        No       |                       ||           widget value
+        #   No    |      Yes         |        Yes      |                       ||           state value
+
         default_value = min_value if min_value is not None else 0
 
         if is_in_form(self.dg):
@@ -167,17 +178,15 @@ class SliderMixin:
                 value = v
             elif value is None:
                 value = default_value
-
-            state[key] = value
         else:
             v = state.get(key, None)
             if v is None:
                 if value is None:
                     value = default_value
-
-                state[key] = value
             else:
                 value = v
+
+        state[key] = value
 
         SUPPORTED_TYPES = {
             int: SliderProto.INT,
@@ -188,7 +197,6 @@ class SliderMixin:
         }
         TIMELIKE_TYPES = (SliderProto.DATETIME, SliderProto.TIME, SliderProto.DATE)
 
-        print(f"value={value}")
         # Ensure that the value is either a single value or a range of values.
         single_value = isinstance(value, tuple(SUPPORTED_TYPES.keys()))
         range_value = isinstance(value, (list, tuple)) and len(value) in (0, 1, 2)
