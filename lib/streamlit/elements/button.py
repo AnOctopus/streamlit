@@ -87,7 +87,7 @@ class ButtonMixin:
         kwargs=None,
     ) -> bool:
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:button:{label}"
 
         # It doesn't make sense to create a button inside a form (except
         # for the "Form Submitter" button that's automatically created in

@@ -106,7 +106,7 @@ class SelectSliderMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:select_slider:{label}"
 
         options = ensure_iterable(options)
 

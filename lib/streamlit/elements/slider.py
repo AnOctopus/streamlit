@@ -147,7 +147,7 @@ class SliderMixin:
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:slider:{label}"
 
         if (
             value is not None

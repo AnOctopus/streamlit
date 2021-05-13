@@ -84,7 +84,7 @@ class SelectboxMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:selectbox:{label}"
 
         options = ensure_iterable(options)
 

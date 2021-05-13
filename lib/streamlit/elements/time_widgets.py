@@ -72,7 +72,7 @@ class TimeWidgetsMixin:
             raise StreamlitAPIException
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:time_input:{label}"
 
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
@@ -201,7 +201,7 @@ class TimeWidgetsMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:date_input:{label}"
 
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)

@@ -74,7 +74,7 @@ class CheckboxMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:checkbox:{label}"
 
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)

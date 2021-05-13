@@ -79,7 +79,7 @@ class TextWidgetsMixin:
             raise StreamlitAPIException
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:text_input:{label}"
 
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)
@@ -212,7 +212,7 @@ class TextWidgetsMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:text_area:{label}"
 
         state = get_session_state()
         force_set_value = state.is_new_value(key) and not is_in_form(self.dg)

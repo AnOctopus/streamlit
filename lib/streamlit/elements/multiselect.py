@@ -94,7 +94,7 @@ class MultiSelectMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:multiselect:{label}"
 
         options: List[str] = ensure_iterable(options)
 

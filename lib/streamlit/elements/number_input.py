@@ -92,7 +92,7 @@ class NumberInputMixin:
             )
 
         if key is None:
-            key = f"internal:{label}"
+            key = f"internal:number_input:{label}"
 
         # Ensure that all arguments are of the same type.
         argsl = [min_value, max_value, value, step]
