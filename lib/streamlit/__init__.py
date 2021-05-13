@@ -193,6 +193,8 @@ class LazySessionState:
         state.__setattr__(k, v)
 
     def __getitem__(self, k: str) -> Any:
+        if k is None:
+            raise KeyError(k)
         state = get_session_state()
         if k.startswith("internal:"):
             raise KeyError

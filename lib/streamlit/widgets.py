@@ -204,14 +204,19 @@ class WidgetStateManager(object):
                 # The widget does not have an on_change callback.
                 continue
 
+            print(f"processing new widget state with callback: {new_state.id}")
             if self.equivalent_values(new_state):
                 continue
 
+            print(f"not a repeat state")
             arg = self._widget_args.get(new_state.id, None)
+            print(f"arg is {arg}")
             if arg is not None:
                 args = arg.args if arg.args is not None else ()
                 kwargs = arg.kwargs if arg.kwargs is not None else dict()
+                print(f"calling callback with args={args} and kwargs={kwargs}")
                 callback(*args, **kwargs)
+                print(f"done calling callback")
             else:
                 callback()
 

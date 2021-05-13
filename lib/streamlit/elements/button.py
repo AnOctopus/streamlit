@@ -86,7 +86,8 @@ class ButtonMixin:
         args=None,
         kwargs=None,
     ) -> bool:
-        button_proto = ButtonProto()
+        if key is None:
+            key = f"internal:{label}"
 
         # It doesn't make sense to create a button inside a form (except
         # for the "Form Submitter" button that's automatically created in
@@ -103,20 +104,13 @@ class ButtonMixin:
                     f"`st.submit_button()` must be used inside an `st.form()`.{FORM_DOCS_INFO}"
                 )
 
+        button_proto = ButtonProto()
         button_proto.label = label
         button_proto.default = False
         button_proto.is_form_submitter = is_form_submitter
         button_proto.form_id = current_form_id(self.dg)
         if help is not None:
             button_proto.help = help
-
-        def on_change_handler(*args, **kwargs):
-            try:
-                new_value = streamlit.session_state[key]
-                if new_value and on_change is not None:
-                    on_change(*args, **kwargs)
-            except KeyError:
-                pass
 
         def deserialize_button(ui_value):
             return ui_value if ui_value is not None else False
@@ -125,7 +119,7 @@ class ButtonMixin:
             "button",
             button_proto,
             user_key=key,
-            on_change_handler=on_change_handler,
+            on_change_handler=on_change,
             args=args,
             kwargs=kwargs,
             deserializer=deserialize_button,
