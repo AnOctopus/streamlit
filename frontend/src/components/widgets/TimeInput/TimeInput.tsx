@@ -58,14 +58,10 @@ class TimeInput extends PureComponent<Props, State> {
   }
 
   public componentDidUpdate(prevProps: Props, prevState: State): void {
-    if (!prevProps.element.valueSet && this.props.element.valueSet) {
-      this.setState({ value: this.props.element.value })
-    } else if (
-      prevProps.element.valueSet &&
-      this.props.element.valueSet &&
-      prevProps.element.value !== this.props.element.value
-    ) {
-      this.setState({ value: this.props.element.value })
+    if (this.props.element.valueSet) {
+      this.setState({
+        value: this.props.element.value,
+      })
     }
   }
 
