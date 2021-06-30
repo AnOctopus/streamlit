@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numbers
-from typing import Optional, cast
+from typing import Optional, Union, cast
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
@@ -28,22 +28,24 @@ from streamlit.state.session_state import (
 from .form import current_form_id
 from .utils import check_callback_rules, check_session_state_rules
 
+Number = Union[int, float]
+
 
 class NumberInputMixin:
     def number_input(
         self,
         label: str,
-        min_value=None,
-        max_value=None,
+        min_value: Optional[Number] = None,
+        max_value: Optional[Number] = None,
         value=NoValue(),
-        step=None,
+        step: Optional[Number] = None,
         format=None,
         key: Optional[str] = None,
         help: Optional[str] = None,
         on_change: Optional[WidgetCallback] = None,
         args: Optional[WidgetArgs] = None,
         kwargs: Optional[WidgetKwargs] = None,
-    ):
+    ) -> Number:
         """Display a numeric input widget.
 
         Parameters
@@ -180,11 +182,11 @@ class NumberInputMixin:
         try:
             if all_ints:
                 if min_value is not None:
-                    JSNumber.validate_int_bounds(min_value, "`min_value`")
+                    JSNumber.validate_int_bounds(min_value, "`min_value`")  # type: ignore
                 if max_value is not None:
-                    JSNumber.validate_int_bounds(max_value, "`max_value`")
+                    JSNumber.validate_int_bounds(max_value, "`max_value`")  # type: ignore
                 if step is not None:
-                    JSNumber.validate_int_bounds(step, "`step`")
+                    JSNumber.validate_int_bounds(step, "`step`")  # type: ignore
                 JSNumber.validate_int_bounds(value, "`value`")
             else:
                 if min_value is not None:
@@ -240,7 +242,7 @@ class NumberInputMixin:
             number_input_proto.set_value = True
 
         self.dg._enqueue("number_input", number_input_proto)
-        return current_value
+        return cast(Number, current_value)
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

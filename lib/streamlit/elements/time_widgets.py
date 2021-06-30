@@ -41,7 +41,7 @@ class TimeWidgetsMixin:
         on_change: Optional[WidgetCallback] = None,
         args: Optional[WidgetArgs] = None,
         kwargs: Optional[WidgetKwargs] = None,
-    ):
+    ) -> time:
         """Display a time input widget.
 
         Parameters
@@ -128,7 +128,7 @@ class TimeWidgetsMixin:
             time_input_proto.set_value = True
 
         self.dg._enqueue("time_input", time_input_proto)
-        return current_value
+        return cast(time, current_value)
 
     def date_input(
         self,
@@ -141,7 +141,7 @@ class TimeWidgetsMixin:
         on_change: Optional[WidgetCallback] = None,
         args: Optional[WidgetArgs] = None,
         kwargs: Optional[WidgetKwargs] = None,
-    ):
+    ) -> date:
         """Display a date input widget.
 
         Parameters
@@ -264,7 +264,7 @@ class TimeWidgetsMixin:
             date_input_proto.set_value = True
 
         self.dg._enqueue("date_input", date_input_proto)
-        return current_value
+        return cast(date, current_value)
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":

@@ -31,7 +31,7 @@ from .utils import check_callback_rules, check_session_state_rules
 class TextWidgetsMixin:
     def text_input(
         self,
-        label,
+        label: str,
         value: str = "",
         max_chars: Optional[int] = None,
         key: Optional[str] = None,
@@ -41,7 +41,7 @@ class TextWidgetsMixin:
         on_change: Optional[WidgetCallback] = None,
         args: Optional[WidgetArgs] = None,
         kwargs: Optional[WidgetKwargs] = None,
-    ):
+    ) -> str:
         """Display a single-line text input widget.
 
         Parameters
@@ -135,11 +135,11 @@ class TextWidgetsMixin:
             text_input_proto.set_value = True
 
         self.dg._enqueue("text_input", text_input_proto)
-        return current_value
+        return cast(str, current_value)
 
     def text_area(
         self,
-        label,
+        label: str,
         value: str = "",
         height: Optional[int] = None,
         max_chars: Optional[int] = None,
@@ -148,7 +148,7 @@ class TextWidgetsMixin:
         on_change: Optional[WidgetCallback] = None,
         args: Optional[WidgetArgs] = None,
         kwargs: Optional[WidgetKwargs] = None,
-    ):
+    ) -> str:
         """Display a multi-line text input widget.
 
         Parameters
@@ -229,7 +229,7 @@ class TextWidgetsMixin:
             text_area_proto.set_value = True
 
         self.dg._enqueue("text_area", text_area_proto)
-        return current_value
+        return cast(str, current_value)
 
     @property
     def dg(self) -> "streamlit.delta_generator.DeltaGenerator":
