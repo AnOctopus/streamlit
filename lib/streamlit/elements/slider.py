@@ -21,6 +21,11 @@ from streamlit.js_number import JSNumber
 from streamlit.js_number import JSNumberBoundsException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
 from streamlit.proto.WidgetStates_pb2 import WidgetState as WidgetStateProto
+from streamlit.state.session_state import (
+    WidgetArgs,
+    WidgetCallback,
+    WidgetKwargs,
+)
 from streamlit.state.widgets import register_widget
 from .form import current_form_id
 from .utils import check_callback_rules, check_session_state_rules
@@ -29,17 +34,17 @@ from .utils import check_callback_rules, check_session_state_rules
 class SliderMixin:
     def slider(
         self,
-        label,
+        label: str,
         min_value=None,
         max_value=None,
         value=None,
         step=None,
         format=None,
-        key=None,
-        help=None,
-        on_change=None,
-        args=None,
-        kwargs=None,
+        key: Optional[str] = None,
+        help: Optional[str] = None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a slider widget.
 

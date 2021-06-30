@@ -21,6 +21,11 @@ import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.DateInput_pb2 import DateInput as DateInputProto
 from streamlit.proto.TimeInput_pb2 import TimeInput as TimeInputProto
+from streamlit.state.session_state import (
+    WidgetArgs,
+    WidgetCallback,
+    WidgetKwargs,
+)
 from streamlit.state.widgets import register_widget
 from .form import current_form_id
 from .utils import check_callback_rules, check_session_state_rules
@@ -29,13 +34,13 @@ from .utils import check_callback_rules, check_session_state_rules
 class TimeWidgetsMixin:
     def time_input(
         self,
-        label,
+        label: str,
         value=None,
-        key=None,
-        help=None,
-        on_change=None,
-        args=None,
-        kwargs=None,
+        key: Optional[str] = None,
+        help: Optional[str] = None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a time input widget.
 
@@ -127,15 +132,15 @@ class TimeWidgetsMixin:
 
     def date_input(
         self,
-        label,
+        label: str,
         value=None,
         min_value=None,
         max_value=None,
-        key=None,
-        help=None,
-        on_change=None,
-        args=None,
-        kwargs=None,
+        key: Optional[str] = None,
+        help: Optional[str] = None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a date input widget.
 

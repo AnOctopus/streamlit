@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast, List
+from typing import Optional, cast, List
 
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.MultiSelect_pb2 import MultiSelect as MultiSelectProto
 from streamlit.state.widgets import register_widget
+from streamlit.state.session_state import (
+    WidgetArgs,
+    WidgetCallback,
+    WidgetKwargs,
+)
 from streamlit.type_util import is_type, ensure_iterable
 from .form import current_form_id
 from .utils import check_callback_rules, check_session_state_rules
@@ -26,15 +31,15 @@ from .utils import check_callback_rules, check_session_state_rules
 class MultiSelectMixin:
     def multiselect(
         self,
-        label,
+        label: str,
         options,
         default=None,
         format_func=str,
-        key=None,
-        help=None,
-        on_change=None,
-        args=None,
-        kwargs=None,
+        key: Optional[str] = None,
+        help: Optional[str] = None,
+        on_change: Optional[WidgetCallback] = None,
+        args: Optional[WidgetArgs] = None,
+        kwargs: Optional[WidgetKwargs] = None,
     ):
         """Display a multiselect widget.
         The multiselect widget starts as empty.
